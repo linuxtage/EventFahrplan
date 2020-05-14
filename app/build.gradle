@@ -8,6 +8,7 @@ apply plugin: "com.android.application"
 apply plugin: "kotlin-android"
 apply plugin: "com.google.devtools.ksp"
 apply plugin: "de.mobilej.unmock"
+apply plugin: "com.hiya.jacoco-android"
 apply from: "../gradle/sonarqube.gradle"
 
 android {
@@ -168,6 +169,12 @@ android {
                 "-Xopt-in=kotlin.RequiresOptIn"
         ]
     }
+}
+
+jacocoAndroidUnitTestReport {
+    csv.enabled false
+    html.enabled false
+    xml.enabled true
 }
 
 unMock {
