@@ -25,6 +25,9 @@ import nerd.tuxmobil.fahrplan.congress.repositories.SessionsTransformer;
  */
 public class Session {
 
+    public String sessionId;
+    public String guid = "";
+
     public String title;
     public String subtitle;
     public String url;
@@ -49,7 +52,6 @@ public class Session {
 
     public List<String> speakers;
     public String track;
-    public String sessionId;
     public String type;
     public String lang;
     public String slug;
@@ -83,6 +85,7 @@ public class Session {
     private static final boolean RECORDING_OPTOUT_OFF = false;
 
     public Session(String sessionId) {
+        guid = "";
         title = "";
         subtitle = "";
         day = 0;
@@ -122,6 +125,7 @@ public class Session {
     }
 
     public Session(@NonNull Session session) {
+        this.guid = session.guid;
         this.title = session.title;
         this.subtitle = session.subtitle;
         this.url = session.url;
@@ -211,6 +215,7 @@ public class Session {
         if (!ObjectsCompat.equals(date, session.date)) return false;
         if (!ObjectsCompat.equals(lang, session.lang)) return false;
         if (!sessionId.equals(session.sessionId)) return false;
+        if (!guid.equals(session.guid)) return false;
         if (!ObjectsCompat.equals(recordingLicense, session.recordingLicense)) return false;
         if (!ObjectsCompat.equals(room, session.room)) return false;
         if (!ObjectsCompat.equals(speakers, session.speakers)) return false;
@@ -235,6 +240,7 @@ public class Session {
         result = 31 * result + ObjectsCompat.hashCode(speakers);
         result = 31 * result + ObjectsCompat.hashCode(track);
         result = 31 * result + sessionId.hashCode();
+        result = 31 * result + guid.hashCode();
         result = 31 * result + ObjectsCompat.hashCode(type);
         result = 31 * result + ObjectsCompat.hashCode(lang);
         result = 31 * result + ObjectsCompat.hashCode(date);
