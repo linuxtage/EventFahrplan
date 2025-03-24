@@ -1,6 +1,7 @@
 package info.metadude.android.eventfahrplan.commons.temporal
 
 import org.threeten.bp.Instant
+import org.threeten.bp.LocalDateTime
 import org.threeten.bp.OffsetDateTime
 import org.threeten.bp.ZoneId
 import org.threeten.bp.ZoneOffset
@@ -11,7 +12,7 @@ import org.threeten.bp.format.FormatStyle
 /**
  * Format timestamps according to system locale and system time zone.
  */
-class DateFormatter private constructor(
+open class DateFormatter constructor(
 
     val useDeviceTimeZone: Boolean
 
@@ -116,7 +117,7 @@ class DateFormatter private constructor(
      * Returns the available zone offset - either the given [sessionZoneOffset] or the zone offset
      * of the device. The user can overrule the logic by setting [useDeviceTimeZone].
      */
-    private fun getAvailableZoneOffset(sessionZoneOffset: ZoneOffset?): ZoneOffset {
+    open fun getAvailableZoneOffset(sessionZoneOffset: ZoneOffset?): ZoneOffset {
         val deviceZoneOffset = OffsetDateTime.now().offset
         val useDeviceZoneOffset = sessionZoneOffset == null || sessionZoneOffset == deviceZoneOffset
         return if (useDeviceTimeZone || useDeviceZoneOffset) deviceZoneOffset else sessionZoneOffset!!
@@ -126,6 +127,42 @@ class DateFormatter private constructor(
 
         fun newInstance(useDeviceTimeZone: Boolean): DateFormatter {
             return DateFormatter(useDeviceTimeZone)
+        }
+    }
+}
+
+/**
+ * Format timestamps according to system locale and system time zone.
+ * Take conference date into account
+ */
+class SessionDateFormatter(useDeviceTimeZone: Boolean
+): DateFormatter(useDeviceTimeZone) {
+
+    private var day_year: Int = 2025
+    private var day_month: Int = 1
+    private var day_monthDay: Int = 1
+
+    fun setTargetDate(year1: Int, month1: Int, monthDay1: Int)  {
+        day_year = year1
+        day_month = month1
+        day_monthDay = monthDay1
+    }
+
+    override fun getAvailableZoneOffset(sessionZoneOffset: ZoneOffset?): ZoneOffset {
+        // !!! fix data start here, need to be replaced later
+        val zoneId = ZoneId.of("Europe/Vienna")  // target zone
+        // !!! fix data end here
+        val localDateTime = LocalDateTime.of(day_year, day_month, day_monthDay, 0, 0)  // target date+time
+        val zonedDateTime = ZonedDateTime.of(localDateTime, zoneId)
+        val deviceZoneOffset = zonedDateTime.offset
+        val useDeviceZoneOffset = sessionZoneOffset == null || sessionZoneOffset == deviceZoneOffset
+        return if (useDeviceTimeZone || useDeviceZoneOffset) deviceZoneOffset else sessionZoneOffset!!
+    }
+
+    companion object {
+
+        fun newInstance(useDeviceTimeZone: Boolean): SessionDateFormatter {
+            return SessionDateFormatter(useDeviceTimeZone)
         }
     }
 }

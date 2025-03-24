@@ -2,6 +2,7 @@ package nerd.tuxmobil.fahrplan.congress.schedule
 
 import info.metadude.android.eventfahrplan.commons.temporal.DateFormatter
 import info.metadude.android.eventfahrplan.commons.temporal.Moment
+import info.metadude.android.eventfahrplan.commons.temporal.SessionDateFormatter
 import nerd.tuxmobil.fahrplan.congress.schedule.TimeSegment.Companion.TIME_GRID_MINIMUM_SEGMENT_HEIGHT
 import org.threeten.bp.ZoneOffset
 
@@ -32,10 +33,12 @@ internal class TimeSegment private constructor(
     }
 
     private val roundedMoment: Moment
+    private val currDate: Moment
 
     init {
         val remainder = moment.minuteOfDay % TIME_GRID_MINIMUM_SEGMENT_HEIGHT
         roundedMoment = moment.minusMinutes(remainder.toLong())
+        currDate = moment
     }
 
     /**
@@ -44,8 +47,11 @@ internal class TimeSegment private constructor(
      *
      * See [DateFormatter.getFormattedTime24Hour].
      */
-    fun getFormattedText(sessionZoneOffset: ZoneOffset?, useDeviceTimeZone: Boolean): String =
-        DateFormatter.newInstance(useDeviceTimeZone).getFormattedTime24Hour(roundedMoment, sessionZoneOffset)
+    fun getFormattedText(sessionZoneOffset: ZoneOffset?, useDeviceTimeZone: Boolean): String {
+        val sessionDateFormatter = SessionDateFormatter.newInstance(useDeviceTimeZone)
+        sessionDateFormatter.setTargetDate(currDate.year, currDate.month, currDate.monthDay)
+        return sessionDateFormatter.getFormattedTime24Hour(roundedMoment, sessionZoneOffset)
+    }
 
     /**
      * Returns true if the given [otherMoment] matches the internal rounded moment taken the
