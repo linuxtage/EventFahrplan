@@ -20,16 +20,19 @@ android {
     buildToolsVersion = Android.buildToolsVersion
 
     defaultConfig {
-        versionCode 1700023
-        versionName "1.8.23"
+        versionCode 1700024
+        versionName "1.8.24"
         minSdk Android.minSdkVersion
         targetSdk Android.targetSdkVersion
         base.archivesName = "Fahrplan-$versionName"
 
         vectorDrawables.useSupportLibrary = true // allows using fillColor, fillType, strokeColor functionalities below Android 7.0 (API 24)
 
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments runnerBuilder: "de.mannodermaus.junit5.AndroidJUnit5Builder"
+
         // Build information
-        resValue("string", "build_time", "\"${buildTime()}\"")
+        resValue("string", "modification_time", "\"${modificationTime()}\"")
         resValue("string", "git_sha", "\"${gitSha()}\"")
 
         // Build configuration / feature flags
@@ -63,11 +66,13 @@ android {
 
     buildTypes {
         debug {
+            resValue("string", "build_time", "\"${buildTime()}\"")
             versionNameSuffix "-DEBUG"
             applicationIdSuffix ".debug"
             debuggable true
         }
         release {
+            resValue("string", "build_time", "")
             minifyEnabled true
             proguardFiles getDefaultProguardFile("proguard-android.txt"),
                     "proguard-rules/proguard-project.txt",
@@ -134,6 +139,16 @@ android {
                 "-opt-in=kotlin.RequiresOptIn"
         ]
     }
+
+    packagingOptions {
+        resources {
+            excludes += [
+                    "META-INF/LICENSE.md",
+                    "META-INF/LICENSE-notice.md",
+            ]
+        }
+    }
+
 }
 
 unMock {
@@ -198,6 +213,7 @@ dependencies {
     testImplementation Libs.coreTesting
     testImplementation Libs.junitJupiterApi
     testRuntimeOnly Libs.junitJupiterEngine
+    testRuntimeOnly Libs.junitPlatformLauncher
     testImplementation Libs.junitJupiterParams
     testImplementation(Libs.kotlinCoroutinesTest) {
         // workaround for https://github.com/Kotlin/kotlinx.coroutines/issues/2023
@@ -208,6 +224,12 @@ dependencies {
     testImplementation Libs.turbine
 
     unmock Libs.robolectric
+
+    androidTestImplementation Libs.androidTestCore
+    androidTestRuntimeOnly Libs.androidTestRunner
+    androidTestImplementation Libs.junitJupiterApi
+    androidTestImplementation Libs.junitJupiterParams
+    androidTestImplementation Libs.truth
 }
 
 def gitSha() {
@@ -219,8 +241,22 @@ def gitSha() {
     return res
 }
 
+def modificationTime() {
+    // https://reproducible-builds.org/docs/source-date-epoch/
+    // Set based on the current commit that is being built.
+    def committedAt = System.getenv('SOURCE_DATE_EPOCH')
+    if (committedAt == null || committedAt.length() == 0) {
+        committedAt = "git log -1 --format=%ct".execute([], project.rootDir).text.trim()
+    }
+    return getFormattedDate(new Date(Long.parseLong(committedAt) * 1000))
+}
+
 static def buildTime() {
-    return new Date().format("yyyy-MM-dd'T'HH:mm'Z'", TimeZone.getTimeZone("UTC"))
+    return getFormattedDate(new Date())
+}
+
+static def getFormattedDate(Date date) {
+    return date.format("yyyy-MM-dd'T'HH:mm'Z'", TimeZone.getTimeZone("UTC"))
 }
 
 def hasSigningConfig(String flavor) {

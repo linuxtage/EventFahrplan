@@ -1,12 +1,12 @@
 package nerd.tuxmobil.fahrplan.congress.settings
 
-import android.annotation.TargetApi
 import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import androidx.annotation.RequiresApi
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -18,23 +18,30 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
 import info.metadude.android.eventfahrplan.commons.logging.Logging
+import info.metadude.android.eventfahrplan.commons.temporal.DateFormatter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import nerd.tuxmobil.fahrplan.congress.BuildConfig
 import nerd.tuxmobil.fahrplan.congress.R
 import nerd.tuxmobil.fahrplan.congress.alarms.AlarmServices
+import nerd.tuxmobil.fahrplan.congress.commons.ResourceResolver
 import nerd.tuxmobil.fahrplan.congress.contract.BundleKeys
 import nerd.tuxmobil.fahrplan.congress.extensions.toSpanned
 import nerd.tuxmobil.fahrplan.congress.extensions.withExtras
 import nerd.tuxmobil.fahrplan.congress.preferences.AlarmTonePreference
+import nerd.tuxmobil.fahrplan.congress.repositories.AppExecutionContext
 import nerd.tuxmobil.fahrplan.congress.repositories.AppRepository
+import nerd.tuxmobil.fahrplan.congress.repositories.ExecutionContext
 import nerd.tuxmobil.fahrplan.congress.schedulestatistic.ScheduleStatisticActivity
 import nerd.tuxmobil.fahrplan.congress.utils.FahrplanMisc
 
-class SettingsFragment : PreferenceFragmentCompat() {
+class SettingsFragment(
+    val executionContext: ExecutionContext = AppExecutionContext
+) : PreferenceFragmentCompat() {
 
     private companion object {
 
@@ -44,6 +51,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private val job = Job()
     private val coroutineScope = CoroutineScope(Dispatchers.Default + job)
+    private val dateFormatter = DateFormatter.newInstance(AppRepository.readUseDeviceTimeZoneEnabled())
+    private val intervalFormatter by lazy { IntervalFormatter(ResourceResolver(requireContext())) }
     private val logging = Logging.get()
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -58,7 +67,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
         requirePreference<ListPreference>(resources.getString(R.string.preference_key_schedule_refresh_interval_index)).onPreferenceChangeListener = OnPreferenceChangeListener { _, _ ->
             coroutineScope.launch {
                 delay(100) // Workaround because preference is written asynchronous.
-                FahrplanMisc.setUpdateAlarm(requireContext(), AppRepository.loadConferenceTimeFrame(), isInitial = true, logging)
+                FahrplanMisc.setUpdateAlarm(
+                    context = requireContext(),
+                    conferenceTimeFrame = AppRepository.loadConferenceTimeFrame(),
+                    isInitial = true,
+                    logging = logging,
+                    onCancelScheduleNextFetch = AppRepository::deleteScheduleNextFetch ,
+                    onUpdateScheduleNextFetch = AppRepository::updateScheduleNextFetch,
+                )
             }
             true
         }
@@ -75,11 +91,21 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         val categoryGeneral = requirePreference<PreferenceCategory>(getString(R.string.preference_key_category_general))
 
-        requirePreference<SwitchPreferenceCompat>(resources.getString(R.string.preference_key_auto_update_enabled)).onPreferenceChangeListener = OnPreferenceChangeListener { _: Preference?, newValue: Any ->
+        val autoUpdatePreference = requirePreference<SwitchPreferenceCompat>(resources.getString(R.string.preference_key_auto_update_enabled))
+        autoUpdatePreference.onPreferenceChangeListener = OnPreferenceChangeListener { _: Preference?, newValue: Any ->
             val isAutoUpdateEnabled = newValue as Boolean
             if (isAutoUpdateEnabled) {
-                FahrplanMisc.setUpdateAlarm(requireContext(), AppRepository.loadConferenceTimeFrame(), isInitial = true, logging)
+                FahrplanMisc.setUpdateAlarm(
+                    context = requireContext(),
+                    conferenceTimeFrame = AppRepository.loadConferenceTimeFrame(),
+                    isInitial = true,
+                    logging = logging,
+                    onCancelScheduleNextFetch = AppRepository::deleteScheduleNextFetch,
+                    onUpdateScheduleNextFetch = AppRepository::updateScheduleNextFetch,
+                )
             } else {
+                AppRepository.deleteScheduleNextFetch()
+                autoUpdatePreference.summary = resources.getString(R.string.preference_summary_auto_update_enabled)
                 AlarmServices.newInstance(requireContext(), AppRepository).discardAutoUpdateAlarm()
             }
             true
@@ -139,6 +165,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         } else {
             screen.removePreference(engelsystemCategory)
         }
+        updateAutoUpdateSummary()
     }
 
     override fun onStop() {
@@ -168,7 +195,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         requireNotNull(activity).setResult(RESULT_OK, redrawIntent)
     }
 
-    @TargetApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun launchAppNotificationSettings(context: Context) {
         val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).withExtras(
             Settings.EXTRA_APP_PACKAGE to context.packageName
@@ -178,6 +205,30 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun launchScheduleStatistic(context: Context) {
         ScheduleStatisticActivity.start(context)
+    }
+
+    private fun updateAutoUpdateSummary() {
+        val autoUpdatePreference = requirePreference<SwitchPreferenceCompat>(resources.getString(R.string.preference_key_auto_update_enabled))
+        coroutineScope.launch {
+            AppRepository.scheduleNextFetch
+                .collectLatest { nextFetch ->
+                    val text = when (autoUpdatePreference.isChecked && nextFetch.isValid()) {
+                        true -> {
+                            val (nextFetchAt, interval) = nextFetch
+                            val nextFetchAtText = dateFormatter.getFormattedDateTimeShort(nextFetchAt.toMilliseconds(), sessionZoneOffset = null)
+                            val intervalText = intervalFormatter.getFormattedInterval(interval)
+                            resources.getString(R.string.preference_summary_auto_update_next_fetch_approximately_at, nextFetchAtText, intervalText)
+                        }
+
+                        false -> {
+                            resources.getString(R.string.preference_summary_auto_update_enabled)
+                        }
+                    }
+                    executionContext.withUiContext {
+                        autoUpdatePreference.summary = text
+                    }
+                }
+        }
     }
 
     /**

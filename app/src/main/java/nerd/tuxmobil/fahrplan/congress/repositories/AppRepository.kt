@@ -6,6 +6,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import info.metadude.android.eventfahrplan.commons.extensions.onFailure
 import info.metadude.android.eventfahrplan.commons.logging.Logging
+import info.metadude.android.eventfahrplan.commons.temporal.Duration
 import info.metadude.android.eventfahrplan.commons.temporal.Moment
 import info.metadude.android.eventfahrplan.database.extensions.toContentValues
 import info.metadude.android.eventfahrplan.database.models.ColumnStatistic
@@ -29,6 +30,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
@@ -61,6 +63,7 @@ import nerd.tuxmobil.fahrplan.congress.models.Alarm
 import nerd.tuxmobil.fahrplan.congress.models.ConferenceTimeFrame
 import nerd.tuxmobil.fahrplan.congress.models.ConferenceTimeFrame.Known
 import nerd.tuxmobil.fahrplan.congress.models.ConferenceTimeFrame.Unknown
+import nerd.tuxmobil.fahrplan.congress.models.NextFetch
 import nerd.tuxmobil.fahrplan.congress.models.ScheduleData
 import nerd.tuxmobil.fahrplan.congress.net.CustomHttpClient
 import nerd.tuxmobil.fahrplan.congress.net.FetchScheduleResult
@@ -104,6 +107,12 @@ object AppRepository : SearchRepository,
     const val ENGELSYSTEM_ROOM_NAME = "Engelshifts"
     private const val ALL_DAYS = -1
 
+    /**
+     * [SQLiteDatabase#insert][android.database.sqlite.SQLiteDatabase.insert]
+     * returns -1 if an error occurred.
+     */
+    private const val DATABASE_UPDATE_ERROR = -1L
+
     private const val LOG_TAG = "AppRepository"
     private lateinit var logging: Logging
 
@@ -136,8 +145,6 @@ object AppRepository : SearchRepository,
      */
     val loadScheduleState: Flow<LoadScheduleState> = mutableLoadScheduleState
 
-    private val refreshMetaSignal = MutableSharedFlow<Unit>()
-
     private fun refreshMeta() {
         logging.d(LOG_TAG, "Refreshing meta ...")
         val requestIdentifier = "refreshMeta"
@@ -145,6 +152,8 @@ object AppRepository : SearchRepository,
             refreshMetaSignal.emit(Unit)
         }
     }
+
+    private val refreshMetaSignal = MutableSharedFlow<Unit>()
 
     /**
      * Emits meta from the database.
@@ -264,8 +273,7 @@ object AppRepository : SearchRepository,
         refreshUncanceledSessionsSignal
             .onStart { emit(Unit) }
             .mapLatest { loadUncanceledSessionsForDayIndex() }
-            // Don't use distinctUntilChanged() here unless Session highlight and hasAlarm are
-            // part of equals and hashcode. Otherwise the schedule screen does not update.
+            .distinctUntilChanged() // If server does not respond with HTTP 304 (Not modified).
             .flowOn(executionContext.database)
     }
 
@@ -375,6 +383,27 @@ object AppRepository : SearchRepository,
             .onStart { emit(Unit) }
             .flatMapLatest { if (ENABLE_FOSDEM_ROOM_STATES) roomStatesRepository.getRooms() else emptyFlow() }
             .flowOn(executionContext.network)
+    }
+
+    private val refreshScheduleNextFetchSignal = MutableSharedFlow<Unit>()
+
+    private fun refreshScheduleNextFetch() {
+        logging.d(LOG_TAG, "Refreshing schedule next fetch ...")
+        val requestIdentifier = "refreshScheduleNextFetch"
+        parentJobs[requestIdentifier] = databaseScope.launchNamed(requestIdentifier) {
+            refreshScheduleNextFetchSignal.emit(Unit)
+        }
+    }
+
+    /**
+     * Emits the schedule [next fetch][NextFetch].
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val scheduleNextFetch: Flow<NextFetch> by lazy {
+        refreshScheduleNextFetchSignal
+            .onStart { emit(Unit) }
+            .mapLatest { readScheduleNextFetch() }
+            .flowOn(executionContext.database)
     }
 
     fun initialize(
@@ -724,7 +753,7 @@ object AppRepository : SearchRepository,
         val highlightedSessionIds = readHighlights()
             .asSequence()
             .filter { it.isHighlight }
-            .map { it.sessionId.toString() }
+            .map { it.sessionId }
             .toSet()
 
         val highlightedSessions = sessions.map { session ->
@@ -756,38 +785,45 @@ object AppRepository : SearchRepository,
 
     private fun readAlarmSessionIds() = readAlarms().map { it.sessionId }.toSet()
 
-    fun deleteAlarmForAlarmId(alarmId: Int) =
-            alarmsDatabaseRepository.deleteForAlarmId(alarmId).also {
-                refreshAlarms()
-            }
-
-    @WorkerThread
-    fun deleteAllAlarms() =
-        alarmsDatabaseRepository.deleteAll().also {
+    fun deleteAlarmForAlarmId(alarmId: Int) {
+        if (alarmsDatabaseRepository.deleteForAlarmId(alarmId) > 0) {
             refreshAlarms()
             refreshSelectedSession()
             refreshRoomStates()
             refreshUncanceledSessions()
         }
+    }
 
     @WorkerThread
-    fun deleteAlarmForSessionId(sessionId: String) =
-        alarmsDatabaseRepository.deleteForSessionId(sessionId).also {
+    fun deleteAllAlarms() {
+        if (alarmsDatabaseRepository.deleteAll() > 0) {
             refreshAlarms()
             refreshSelectedSession()
             refreshRoomStates()
             refreshUncanceledSessions()
         }
+    }
+
+    @WorkerThread
+    fun deleteAlarmForSessionId(sessionId: String) {
+        if (alarmsDatabaseRepository.deleteForSessionId(sessionId) > 0) {
+            refreshAlarms()
+            refreshSelectedSession()
+            refreshRoomStates()
+            refreshUncanceledSessions()
+        }
+    }
 
     @WorkerThread
     fun updateAlarm(alarm: Alarm) {
         val alarmDatabaseModel = alarm.toAlarmDatabaseModel()
         val values = alarmDatabaseModel.toContentValues()
-        alarmsDatabaseRepository.update(values, alarm.sessionId)
-        refreshAlarms()
-        refreshSelectedSession()
-        refreshRoomStates()
-        refreshUncanceledSessions()
+        if (alarmsDatabaseRepository.update(values, alarm.sessionId) != DATABASE_UPDATE_ERROR) {
+            refreshAlarms()
+            refreshSelectedSession()
+            refreshRoomStates()
+            refreshUncanceledSessions()
+        }
     }
 
     private fun readHighlights() =
@@ -797,29 +833,32 @@ object AppRepository : SearchRepository,
     fun updateHighlight(session: SessionAppModel) {
         val highlightDatabaseModel = session.toHighlightDatabaseModel()
         val values = highlightDatabaseModel.toContentValues()
-        highlightsDatabaseRepository.update(values, session.sessionId)
-        refreshStarredSessions()
-        refreshSelectedSession()
-        refreshRoomStates()
-        refreshUncanceledSessions()
+        if (highlightsDatabaseRepository.update(values, session.sessionId) != DATABASE_UPDATE_ERROR) {
+            refreshStarredSessions()
+            refreshSelectedSession()
+            refreshRoomStates()
+            refreshUncanceledSessions()
+        }
     }
 
     @WorkerThread
     fun deleteHighlight(sessionId: String) {
-        highlightsDatabaseRepository.delete(sessionId)
-        refreshStarredSessions()
-        refreshSelectedSession()
-        refreshRoomStates()
-        refreshUncanceledSessions()
+        if (highlightsDatabaseRepository.delete(sessionId) > 0) {
+            refreshStarredSessions()
+            refreshSelectedSession()
+            refreshRoomStates()
+            refreshUncanceledSessions()
+        }
     }
 
     @WorkerThread
     fun deleteAllHighlights() {
-        highlightsDatabaseRepository.deleteAll()
-        refreshStarredSessions()
-        refreshSelectedSession()
-        refreshRoomStates()
-        refreshUncanceledSessions()
+        if (highlightsDatabaseRepository.deleteAll() > 0) {
+            refreshStarredSessions()
+            refreshSelectedSession()
+            refreshRoomStates()
+            refreshUncanceledSessions()
+        }
     }
 
     private fun readSessionBySessionId(sessionId: String): SessionDatabaseModel {
@@ -827,7 +866,7 @@ object AppRepository : SearchRepository,
             .querySessionBySessionId(sessionId)
 
         val isHighlighted = highlightsDatabaseRepository
-            .queryBySessionId(sessionId.toInt())
+            .queryBySessionId(sessionId)
             ?.isHighlight ?: false
 
         val hasAlarm = alarmsDatabaseRepository
@@ -938,8 +977,9 @@ object AppRepository : SearchRepository,
     @VisibleForTesting
     fun updateMeta(meta: MetaDatabaseModel) {
         val values = meta.toContentValues()
-        metaDatabaseRepository.insert(values)
-        refreshMeta()
+        if (metaDatabaseRepository.insert(values) != DATABASE_UPDATE_ERROR) {
+            refreshMeta()
+        }
     }
 
     fun readScheduleRefreshIntervalDefaultValue() =
@@ -985,6 +1025,25 @@ object AppRepository : SearchRepository,
 
     private fun updateScheduleLastFetchedAt() = with(Moment.now()) {
         sharedPreferencesRepository.setScheduleLastFetchedAt(toMilliseconds())
+    }
+
+    fun readScheduleNextFetch(): NextFetch {
+        return NextFetch(
+            Moment.ofEpochMilli(sharedPreferencesRepository.getScheduleNextFetchAt()),
+            Duration.ofMilliseconds(sharedPreferencesRepository.getScheduleNextFetchInterval()),
+        )
+    }
+
+    fun updateScheduleNextFetch(nextFetch: NextFetch) {
+        sharedPreferencesRepository.setScheduleNextFetchAt(nextFetch.nextFetchAt.toMilliseconds())
+        sharedPreferencesRepository.setScheduleNextFetchInterval(nextFetch.interval.toWholeMilliseconds())
+        refreshScheduleNextFetch()
+    }
+
+    fun deleteScheduleNextFetch() {
+        sharedPreferencesRepository.resetScheduleNextFetchAt()
+        sharedPreferencesRepository.resetScheduleNextFetchInterval()
+        refreshScheduleNextFetch()
     }
 
     @WorkerThread
