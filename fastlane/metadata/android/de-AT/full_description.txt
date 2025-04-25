@@ -5,11 +5,11 @@ Die Grazer Linuxtage sind eine jährliche zweitägige Konferenz zum Thema Open S
 <a href="https://linuxtage.at/">Grazer Linuxtage</a>
 
 App-Funktionen:
-   * Kommende und Live-Veranstaltungen
+   * Bevorstehende und Live-Vorträge
    * Programm nach Tag und Räumen anzeigen (nebeneinander)
    * Benutzerdefiniertes Rasterlayout für Smartphones (im Querformat) und Tablets
    * Lies detaillierte Beschreibungen (Referentennamen, Startzeit, Raumname, Links, ...) von Veranstaltungen
-   * Alle Veranstaltungen durchsuchen
+   * Alle Vorträge durchsuchen
    * Erstellen deinen eigenen individuellen Zeitplan mit Favoriten
    * Teile die Veranstaltung per E-Mail, Twitter usw. mit Ihren Kollegen und Freunden
    * Erinnerung an Ihre Lieblingsvorträge
