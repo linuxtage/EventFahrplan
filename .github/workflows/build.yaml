@@ -17,12 +17,12 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
           cache: 'gradle'
-
+            
       - name: Build the app
         run: ./gradlew assembleGlt22
 
       - name: Unit Tests
-        run: ./gradlew testGlt22DebugUnitTest :engelsystem:test testDebugUnitTest assembleDebug lintAnalyzeDebug
+        run: ./gradlew testGlt22DebugUnitTest testDebugUnitTest assembleDebug lintAnalyzeDebug
 
       - name: Publish unit-test results
         uses: EnricoMi/publish-unit-test-result-action@v2

@@ -14,8 +14,9 @@ height="80">](https://play.google.com/store/apps/details?id=at.linuxtage.Eventfa
 It is a fork of the [EventFahrplan](https://github.com/EventFahrplan/EventFahrplan), which is a viewer for event schedules.
 The app is available for Android devices.
 
-Bug reports, feature requests can be submitted as an [issue][issues-github].
-Please read the instructions in the [contribution guide](CONTRIBUTING.md) in order to contribute to this project.
+Bug reports, feature requests can be submitted as an [issue][issues-github]. Please mind the
+[limitations][limitations]. Please read the instructions in the [contribution guide](CONTRIBUTING.md)
+in order to contribute to this project.
 
 ![Picture of the GLT companion](gfx/glt-companion.webp)
 
@@ -35,19 +36,19 @@ Please read the instructions in the [contribution guide](CONTRIBUTING.md) in ord
 
 * View program by day and rooms (side by side)
 * Custom grid layout for smartphones (**try landscape mode**) and tablets
-* Read detailed descriptions (speaker names, start time, room name, links, ...) of events
-* Search through all events
-* Add events to favorites list
+* Read detailed descriptions (speaker names, start time, room name, links, ...) of sessions
+* Search through all sessions
+* Add sessions to favorites list
 * Export favorites list
-* Setup alarms for individual events
-* Add events to your personal calendar
-* Share a link to an event with others
+* Setup alarms for individual sessions
+* Add sessions to your personal calendar
+* Share a link to a session with others
 * Keep track of program changes
 * Automatic program updates (configurable in settings)
 
 
 ### Supported languages
-*Event descriptions excluded*
+*Session descriptions excluded*
 - Danish 🇩🇰
 - Dutch 🇳🇱
 - English 🇺🇸
@@ -163,7 +164,7 @@ Dominik Stadler, entropynil, erebion, ideadapt, isi_ko404, IsoLinearCHiP,
 Jasper van der Graaf, Joergi, Julius Vitkauskas, koelnkalkverbot, Larissa Yasin,
 lepawa, ligi, lucadelu, Luis Azcuaga, María Arias de Reyna, Mateus Baptista,
 Matthias Geisler, Matthias Hunstock, Matthias Mair, MichaelRocks, Miguel Beltran,
-mtpa, Muha Aliss, Nghiem Xuan Hien, NiciDieNase, Noemis, Oguz Yuksel, Omicron,
+mtpa, Muha Aliss, Nghiem Xuan Hien, NiciDieNase, Noemis, NWuensche, Oguz Yuksel, Omicron,
 ozgurbaykal, Poschi, Qwertele, Róbert Papp, Robin Janssens, rotrot, Sjors van Mierlo,
 Smarzaro, Stefan Medack, SubOptimal, Su Jade, taseret, Teeranai.P, Torsten Grote,
 Victor Herasme, Vladimir Alabov, Yanicka, zadintuvas
@@ -197,5 +198,7 @@ limitations under the License.
 [eventfahrplan-github]: https://github.com/EventFahrplan/EventFahrplan
 [issues-github]: https://github.com/linuxtage/EventFahrplan/issues
 [johnjohndoe-github]: https://github.com/johnjohndoe
+[limitations]: docs/LIMITATIONS.md
+[pentabarf-github]: https://github.com/nevs/pentabarf
 [pretalx-website]: https://pretalx.com
 [tuxmobil-github]: https://github.com/tuxmobil
