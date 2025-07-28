@@ -65,14 +65,14 @@ class AlarmsStateFactoryTest {
         @Test
         fun `createAlarmsState returns values list when alarm and session are associated, 10 min`() {
             val alarmTimeInMin = 10
-            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin).toMilliseconds()
+            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin)
             val factory = createAlarmsStateFactory(alarmTimeInMin)
 
             val alarms = listOf(
                 createAlarm(
                     sessionId = "s0",
                     alarmTimeInMin = alarmTimeInMin,
-                    alarmStartsAt = alarmStartsAt,
+                    alarmStartsAt = alarmStartsAt.toMilliseconds(),
                 )
             )
             val sessions = listOf(
@@ -108,14 +108,14 @@ class AlarmsStateFactoryTest {
         @Test
         fun `createAlarmsState returns values list when alarm and session are associated, 0 min`() {
             val alarmTimeInMin = 0
-            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin).toMilliseconds()
+            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin)
             val factory = createAlarmsStateFactory(alarmTimeInMin)
 
             val alarms = listOf(
                 createAlarm(
                     sessionId = "s0",
                     alarmTimeInMin = alarmTimeInMin,
-                    alarmStartsAt = alarmStartsAt,
+                    alarmStartsAt = alarmStartsAt.toMilliseconds(),
                 )
             )
             val sessions = listOf(
@@ -163,7 +163,7 @@ class AlarmsStateFactoryTest {
         displayTime = -1,
         sessionId = sessionId,
         sessionTitle = "Unused",
-        startTime = alarmStartsAt,
+        startTime = Moment.ofEpochMilli(alarmStartsAt),
         timeText = "Unused",
     )
 
@@ -173,6 +173,25 @@ class AlarmsStateFactoryTest {
 }
 
 private class FakeFormattingDelegate : FormattingDelegate {
+
+    override fun getFormattedTimeShort(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = throw NotImplementedError("Not needed for this test.")
+
+    override fun getFormattedDateShort(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = throw NotImplementedError("Not needed for this test.")
+
+    override fun getFormattedDateLong(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = throw NotImplementedError("Not needed for this test.")
+
     override fun getFormattedDateTimeShort(
         useDeviceTimeZone: Boolean,
         moment: Moment,
