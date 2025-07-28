@@ -3,7 +3,7 @@ package nerd.tuxmobil.fahrplan.congress.alarms
 import com.google.common.truth.Truth.assertThat
 import info.metadude.android.eventfahrplan.commons.temporal.Moment
 import nerd.tuxmobil.fahrplan.congress.R
-import nerd.tuxmobil.fahrplan.congress.commons.DateFormatterDelegate
+import nerd.tuxmobil.fahrplan.congress.commons.FormattingDelegate
 import nerd.tuxmobil.fahrplan.congress.commons.ResourceResolving
 import nerd.tuxmobil.fahrplan.congress.models.Alarm
 import nerd.tuxmobil.fahrplan.congress.models.Session
@@ -65,14 +65,14 @@ class AlarmsStateFactoryTest {
         @Test
         fun `createAlarmsState returns values list when alarm and session are associated, 10 min`() {
             val alarmTimeInMin = 10
-            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin).toMilliseconds()
+            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin)
             val factory = createAlarmsStateFactory(alarmTimeInMin)
 
             val alarms = listOf(
                 createAlarm(
                     sessionId = "s0",
                     alarmTimeInMin = alarmTimeInMin,
-                    alarmStartsAt = alarmStartsAt,
+                    alarmStartsAt = alarmStartsAt.toMilliseconds(),
                 )
             )
             val sessions = listOf(
@@ -108,14 +108,14 @@ class AlarmsStateFactoryTest {
         @Test
         fun `createAlarmsState returns values list when alarm and session are associated, 0 min`() {
             val alarmTimeInMin = 0
-            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin).toMilliseconds()
+            val alarmStartsAt = calculateAlarmStartsAt(alarmTimeInMin)
             val factory = createAlarmsStateFactory(alarmTimeInMin)
 
             val alarms = listOf(
                 createAlarm(
                     sessionId = "s0",
                     alarmTimeInMin = alarmTimeInMin,
-                    alarmStartsAt = alarmStartsAt,
+                    alarmStartsAt = alarmStartsAt.toMilliseconds(),
                 )
             )
             val sessions = listOf(
@@ -151,7 +151,7 @@ class AlarmsStateFactoryTest {
     }
 
     private fun createAlarmsStateFactory(alarmTimeInMin: Int) =
-        AlarmsStateFactory(CompleteResourceResolver(alarmTimeInMin), DateFormatterDelegate)
+        AlarmsStateFactory(CompleteResourceResolver(alarmTimeInMin), FakeFormattingDelegate())
 
     private fun createAlarm(
         sessionId: String,
@@ -163,13 +163,50 @@ class AlarmsStateFactoryTest {
         displayTime = -1,
         sessionId = sessionId,
         sessionTitle = "Unused",
-        startTime = alarmStartsAt,
+        startTime = Moment.ofEpochMilli(alarmStartsAt),
         timeText = "Unused",
     )
 
     private fun calculateAlarmStartsAt(alarmTimeInMin: Int) =
         SESSION_STARTS_AT.minusMinutes(alarmTimeInMin.toLong())
 
+}
+
+private class FakeFormattingDelegate : FormattingDelegate {
+
+    override fun getFormattedTimeShort(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = throw NotImplementedError("Not needed for this test.")
+
+    override fun getFormattedDateShort(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = throw NotImplementedError("Not needed for this test.")
+
+    override fun getFormattedDateLong(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = throw NotImplementedError("Not needed for this test.")
+
+    override fun getFormattedDateTimeShort(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = throw NotImplementedError("Not needed for this test.")
+
+    override fun getFormattedDateTimeLong(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = when (moment) {
+        Moment.ofEpochMilli(1683980400000) -> "May 13, 2023, 12:20 PM"  // 10 minutes before
+        Moment.ofEpochMilli(1683981000000) -> "May 13, 2023, 12:30 PM"  // session start
+        else -> ""
+    }
 }
 
 private class CompleteResourceResolver(val alarmTimeInMin: Int) : ResourceResolving {

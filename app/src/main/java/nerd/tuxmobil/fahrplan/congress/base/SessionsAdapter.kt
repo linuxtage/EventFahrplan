@@ -153,7 +153,7 @@ abstract class SessionsAdapter protected constructor(
             val session = list[index]
             dayIndex = session.dayIndex
             val formattedDate = DateFormatter.newInstance(useDeviceTimeZone)
-                .getFormattedDate(session.dateUTC, session.timeZoneOffset)
+                .getFormattedDateShort(session.startsAt, session.timeZoneOffset)
 
             if (dayIndex != lastDayIndex) {
                 lastDayIndex = dayIndex

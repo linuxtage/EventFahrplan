@@ -12,6 +12,8 @@ interface SharedPreferencesRepository {
 
     fun isAlternativeHighlightingEnabled(): Boolean
 
+    fun isFastSwipingEnabled(): Boolean
+
     fun isAutoUpdateEnabled(): Boolean
 
     fun getDisplayDayIndex(): Int
@@ -36,6 +38,12 @@ interface SharedPreferencesRepository {
     fun getAlternativeScheduleUrl(): String
 
     fun getEngelsystemShiftsUrl(): String
+
+    fun getEngelsystemETag(): String
+    fun setEngelsystemETag(eTag: String)
+
+    fun getEngelsystemLastModified(): String
+    fun setEngelsystemLastModified(lastModified: String)
 
     fun getLastEngelsystemShiftsHash(): Int
     fun setLastEngelsystemShiftsHash(hash: Int)

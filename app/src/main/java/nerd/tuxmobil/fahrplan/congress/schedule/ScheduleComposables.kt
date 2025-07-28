@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -110,7 +111,7 @@ fun SessionCard(
     var showContextMenu by remember { mutableStateOf(false) }
     var pressPosition by remember { mutableStateOf(Offset.Zero) }
     var cardPosition by remember { mutableStateOf(Offset.Zero) }
-    var cardWidth by remember { mutableStateOf(0f) }
+    var cardWidth by remember { mutableFloatStateOf(0f) }
     val interactionSource = remember { MutableInteractionSource() }
 
     Box {
@@ -479,6 +480,7 @@ private fun AlarmIcon(
             .size(dimensionResource(R.dimen.session_drawable_icon_size))
             .padding(dimensionResource(R.dimen.session_drawable_icon_padding)),
         icon = R.drawable.ic_bell_on_session,
+        tint = colorResource(R.color.session_item_alarm_icon),
         contentDescription = stringResource(R.string.session_item_has_alarm_content_description),
     )
 }

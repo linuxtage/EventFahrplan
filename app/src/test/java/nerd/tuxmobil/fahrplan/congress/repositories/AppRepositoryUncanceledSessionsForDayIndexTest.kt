@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import info.metadude.android.eventfahrplan.commons.temporal.Moment
 import info.metadude.android.eventfahrplan.database.models.Highlight
 import info.metadude.android.eventfahrplan.database.repositories.AlarmsDatabaseRepository
 import info.metadude.android.eventfahrplan.database.repositories.HighlightsDatabaseRepository
@@ -56,7 +57,7 @@ class AppRepositoryUncanceledSessionsForDayIndexTest {
                 sessionsDatabaseRepository = createSessionsDatabaseRepository(),
                 highlightsDatabaseRepository = highlightsDatabaseRepository,
                 scheduleNetworkRepository = mock(),
-                engelsystemNetworkRepository = mock(),
+                engelsystemRepository = mock(),
                 sharedPreferencesRepository = createSharedPreferencesRepository(),
                 sessionsTransformer = sessionsTransformer,
             )
@@ -262,7 +263,7 @@ class AppRepositoryUncanceledSessionsForDayIndexTest {
         displayTime = 0,
         sessionId = sessionId,
         sessionTitle = "",
-        startTime = 0,
+        startTime = Moment.ofEpochMilli(0),
         timeText = "",
     )
 

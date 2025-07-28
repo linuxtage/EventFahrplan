@@ -20,8 +20,8 @@ android {
     buildToolsVersion = Android.buildToolsVersion
 
     defaultConfig {
-        versionCode 1700024
-        versionName "1.8.24"
+        versionCode 1700025
+        versionName "1.8.25"
         minSdk Android.minSdkVersion
         targetSdk Android.targetSdkVersion
         base.archivesName = "Fahrplan-$versionName"
@@ -175,7 +175,6 @@ dependencies {
     implementation project(":commons")
     implementation project(":database")
     implementation project(":network")
-    implementation project(":engelsystem")
 
     def composeBom = platform(Compose.bom)
     implementation composeBom
@@ -192,6 +191,7 @@ dependencies {
     implementation Libs.constraintLayout
     implementation Libs.coreKtx
     implementation Libs.emailIntentBuilder
+    implementation Libs.engelsystem
     implementation Libs.fragmentCompose
     implementation Libs.htmlConverter
     implementation Libs.kotlinCoroutinesAndroid

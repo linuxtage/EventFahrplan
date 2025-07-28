@@ -1,6 +1,7 @@
 package nerd.tuxmobil.fahrplan.congress.commons
 
 import info.metadude.android.eventfahrplan.commons.temporal.DateFormatter
+import info.metadude.android.eventfahrplan.commons.temporal.Moment
 import org.threeten.bp.ZoneOffset
 
 /**
@@ -10,20 +11,44 @@ import org.threeten.bp.ZoneOffset
 @Suppress("kotlin:S6516")
 object DateFormatterDelegate : FormattingDelegate {
 
-    override fun getFormattedDateTimeShort(
+    override fun getFormattedTimeShort(
         useDeviceTimeZone: Boolean,
-        dateUtc: Long,
+        moment: Moment,
         timeZoneOffset: ZoneOffset?,
     ) = DateFormatter
         .newInstance(useDeviceTimeZone)
-        .getFormattedDateTimeShort(dateUtc, timeZoneOffset)
+        .getFormattedTimeShort(moment, timeZoneOffset)
+
+    override fun getFormattedDateShort(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = DateFormatter
+        .newInstance(useDeviceTimeZone)
+        .getFormattedDateShort(moment, timeZoneOffset)
+
+    override fun getFormattedDateLong(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = DateFormatter
+        .newInstance(useDeviceTimeZone)
+        .getFormattedDateLong(moment, timeZoneOffset)
+
+    override fun getFormattedDateTimeShort(
+        useDeviceTimeZone: Boolean,
+        moment: Moment,
+        timeZoneOffset: ZoneOffset?,
+    ) = DateFormatter
+        .newInstance(useDeviceTimeZone)
+        .getFormattedDateTimeShort(moment, timeZoneOffset)
 
     override fun getFormattedDateTimeLong(
         useDeviceTimeZone: Boolean,
-        dateUtc: Long,
+        moment: Moment,
         timeZoneOffset: ZoneOffset?,
     ) = DateFormatter
         .newInstance(useDeviceTimeZone)
-        .getFormattedDateTimeLong(dateUtc, timeZoneOffset)
+        .getFormattedDateTimeLong(moment, timeZoneOffset)
 
 }

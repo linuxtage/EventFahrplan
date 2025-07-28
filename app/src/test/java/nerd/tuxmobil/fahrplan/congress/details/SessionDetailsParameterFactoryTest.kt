@@ -1,6 +1,8 @@
 package nerd.tuxmobil.fahrplan.congress.details
 
 import com.google.common.truth.Truth.assertThat
+import info.metadude.android.eventfahrplan.commons.temporal.Duration
+import info.metadude.android.eventfahrplan.commons.temporal.Moment
 import nerd.tuxmobil.fahrplan.congress.commons.FormattingDelegate
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsProperty.MarkupLanguage.Markdown
 import nerd.tuxmobil.fahrplan.congress.models.MarkupLanguage
@@ -66,15 +68,34 @@ class SessionDetailsParameterFactoryTest {
     }
 
     private class FakeFormattingDelegate : FormattingDelegate {
+
+        override fun getFormattedTimeShort(
+            useDeviceTimeZone: Boolean,
+            moment: Moment,
+            timeZoneOffset: ZoneOffset?,
+        ) = throw NotImplementedError("Not needed for this test.")
+
+        override fun getFormattedDateShort(
+            useDeviceTimeZone: Boolean,
+            moment: Moment,
+            timeZoneOffset: ZoneOffset?,
+        ) = throw NotImplementedError("Not needed for this test.")
+
+        override fun getFormattedDateLong(
+            useDeviceTimeZone: Boolean,
+            moment: Moment,
+            timeZoneOffset: ZoneOffset?,
+        ) = throw NotImplementedError("Not needed for this test.")
+
         override fun getFormattedDateTimeShort(
             useDeviceTimeZone: Boolean,
-            dateUtc: Long,
+            moment: Moment,
             timeZoneOffset: ZoneOffset?,
         ) = "01.11.2021 13:00"
 
         override fun getFormattedDateTimeLong(
             useDeviceTimeZone: Boolean,
-            dateUtc: Long,
+            moment: Moment,
             timeZoneOffset: ZoneOffset?,
         ) = ""
     }
@@ -105,7 +126,7 @@ class SessionDetailsParameterFactoryTest {
 
     private class EmptyContentDescriptionFormatter : ContentDescriptionFormatting {
         override fun getSessionIdContentDescription(sessionId: String) = ""
-        override fun getDurationContentDescription(duration: Int) = ""
+        override fun getDurationContentDescription(duration: Duration) = ""
         override fun getTitleContentDescription(title: String) = ""
         override fun getSubtitleContentDescription(subtitle: String) = ""
         override fun getRoomNameContentDescription(roomName: String) = ""
@@ -118,6 +139,7 @@ class SessionDetailsParameterFactoryTest {
         override fun getLanguageContentDescription(languageCode: String) = ""
         override fun getStartTimeContentDescription(startTimeText: String) = ""
         override fun getStateContentDescription(session: Session, useDeviceTimeZone: Boolean) = ""
+        override fun getDaySeparatorContentDescription(dayIndex: Int, formattedDate: String) = ""
     }
 
 }

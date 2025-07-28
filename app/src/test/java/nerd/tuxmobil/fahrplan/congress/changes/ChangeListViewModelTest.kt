@@ -2,6 +2,7 @@ package nerd.tuxmobil.fahrplan.congress.changes
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import info.metadude.android.eventfahrplan.commons.temporal.Duration
 import info.metadude.android.eventfahrplan.commons.testing.MainDispatcherTestExtension
 import info.metadude.android.eventfahrplan.commons.testing.verifyInvokedNever
 import info.metadude.android.eventfahrplan.commons.testing.verifyInvokedOnce
@@ -60,7 +61,7 @@ class ChangeListViewModelTest {
             recordingOptOut = false,
             speakers = listOf("Jane Doe", "John Doe"),
             dateUTC = 1439478900000L,
-            duration = 30,
+            duration = Duration.ofMinutes(30),
             roomName = "Main room",
             language = "de, en",
             dayIndex = 0,
@@ -105,7 +106,7 @@ class ChangeListViewModelTest {
                 changeState = UNCHANGED,
             ),
             duration = SessionChangeProperty(
-                value = "30",
+                value = "30 min",
                 contentDescription = "",
                 changeState = UNCHANGED,
             ),
@@ -127,7 +128,6 @@ class ChangeListViewModelTest {
             assertThat(awaitItem()).isEqualTo(expectedState)
             expectNoEvents()
         }
-        verifyInvokedOnce(repository).readMeta()
         verifyInvokedOnce(repository).readUseDeviceTimeZoneEnabled()
     }
 
@@ -186,7 +186,7 @@ class ChangeListViewModelTest {
                     changeState = UNCHANGED,
                 ),
                 duration = SessionChangeProperty(
-                    value = "${it.duration}",
+                    value = "${it.duration.toWholeMinutes()} min",
                     contentDescription = "",
                     changeState = UNCHANGED,
                 ),
@@ -204,7 +204,7 @@ class ChangeListViewModelTest {
             )
         }
         return mock<SessionChangeParametersFactory> {
-            on { createSessionChangeParameters(anyOrNull(), anyOrNull(), anyOrNull()) } doReturn parameters
+            on { createSessionChangeParameters(anyOrNull(), anyOrNull()) } doReturn parameters
         }
     }
 
