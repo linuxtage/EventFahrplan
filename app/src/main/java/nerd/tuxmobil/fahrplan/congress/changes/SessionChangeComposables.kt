@@ -1,7 +1,6 @@
 package nerd.tuxmobil.fahrplan.congress.changes
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement.SpaceBetween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +19,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -31,13 +29,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import nerd.tuxmobil.fahrplan.congress.R
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.CANCELED
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.CHANGED
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.NEW
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.UNCHANGED
 import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeParameter.Separator
 import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeParameter.SessionChange
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.CANCELED
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.CHANGED
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.NEW
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.UNCHANGED
 import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeState.Loading
 import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeState.Success
 import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeViewEvent.OnSessionChangeItemClick
@@ -153,7 +150,7 @@ fun SessionChangeItem(
             horizontalArrangement = SpaceBetween,
             verticalAlignment = CenterVertically,
         ) {
-            val titleColor = session.title.changeState.color()
+            val titleColor = session.title.changeType.color()
             val textDecoration = textDecorationOf(session.title)
             TextHeadlineContent(
                 modifier = Modifier
@@ -164,10 +161,10 @@ fun SessionChangeItem(
                 text = session.title.value,
                 fontSize = 16.sp,
                 fontWeight = Bold,
-                color = colorResource(titleColor),
+                color = titleColor,
                 textDecoration = textDecoration,
             )
-            val iconColor = session.videoRecordingState.changeState.color()
+            val iconColor = session.videoRecordingState.changeType.color()
             IconVideoRecording(
                 session.videoRecordingState.value,
                 iconColor,
@@ -213,7 +210,7 @@ private fun SecondaryText(
     modifier: Modifier = Modifier,
 ) {
     if (property.value.isNotEmpty()) {
-        val color = property.changeState.color()
+        val color = property.changeType.color()
         val textDecoration = textDecorationOf(property)
         TextSupportingContent(
             modifier = modifier.semantics {
@@ -221,23 +218,23 @@ private fun SecondaryText(
             },
             text = property.value,
             fontSize = 13.sp,
-            color = colorResource(color),
+            color = color,
             textDecoration = textDecoration,
         )
     }
 }
 
 @Composable
-private fun ChangeState.color() = with(this) {
-    when (isSystemInDarkTheme()) { // TODO Move into theme
-        true -> colorOnDark
-        false -> colorOnLight
-    }
+private fun ChangeType.color() = when (this) {
+    UNCHANGED -> EventFahrplanTheme.colorScheme.scheduleChangeUnchangedText
+    NEW -> EventFahrplanTheme.colorScheme.scheduleChangeNew
+    CANCELED -> EventFahrplanTheme.colorScheme.scheduleChangeCanceled
+    CHANGED -> EventFahrplanTheme.colorScheme.scheduleChangeChanged
 }
 
 @Composable
 private fun textDecorationOf(property: SessionChangeProperty<String>) =
-    if (property.changeState == CANCELED) LineThrough else TextDecoration.None
+    if (property.changeType == CANCELED) LineThrough else TextDecoration.None
 
 @MultiDevicePreview
 @Composable

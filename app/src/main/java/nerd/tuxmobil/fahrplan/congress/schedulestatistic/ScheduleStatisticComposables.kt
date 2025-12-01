@@ -1,6 +1,5 @@
 package nerd.tuxmobil.fahrplan.congress.schedulestatistic
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -33,6 +30,9 @@ import nerd.tuxmobil.fahrplan.congress.R
 import nerd.tuxmobil.fahrplan.congress.commons.MultiDevicePreview
 import nerd.tuxmobil.fahrplan.congress.designsystem.bars.TopBar
 import nerd.tuxmobil.fahrplan.congress.designsystem.buttons.ButtonIcon
+import nerd.tuxmobil.fahrplan.congress.designsystem.graphs.StackedHorizontalBar
+import nerd.tuxmobil.fahrplan.congress.designsystem.graphs.StackedHorizontalBar.Colors
+import nerd.tuxmobil.fahrplan.congress.designsystem.graphs.StackedHorizontalBar.Item
 import nerd.tuxmobil.fahrplan.congress.designsystem.icons.IconActionable
 import nerd.tuxmobil.fahrplan.congress.designsystem.screenstates.Loading
 import nerd.tuxmobil.fahrplan.congress.designsystem.screenstates.NoData
@@ -93,7 +93,7 @@ private fun TopBar(showActions: Boolean, onViewEvent: (ScheduleStatisticViewEven
                 ) {
                     IconActionable(
                         icon = R.drawable.ic_sort,
-                        tint = R.color.tool_bar_icon,
+                        tint = EventFahrplanTheme.colorScheme.appBarActionIcon,
                         contentDescription = R.string.schedule_statistic_toggle_sorting,
                     )
                 }
@@ -196,9 +196,14 @@ private fun ColumnStatisticItem(
             modifier = Modifier.defaultMinSize(minWidth = 140.dp),
             text = "${statistic.name}:",
         )
+        val item = itemOf(statistic)
         StackedHorizontalBar(
-            value1 = statistic.countNone,
-            value2 = statistic.countPresent,
+            item = item,
+            contentDescription = "",
+            colors = Colors(
+                value1 = colorOf(item.value1Percentage),
+                value2 = EventFahrplanTheme.colorScheme.scheduleStatisticBarNoWarningBackground,
+            ),
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 8.dp),
@@ -207,57 +212,17 @@ private fun ColumnStatisticItem(
 }
 
 @Composable
-private fun StackedHorizontalBar(
-    value1: Int,
-    value2: Int,
-    modifier: Modifier
-) {
-    val totalValue = value1 + value2
-    val value1Fraction = if (totalValue == 0) 0f else value1.toFloat() / totalValue
-    val value2Fraction = if (totalValue == 0) 0f else value2.toFloat() / totalValue
-    val value1Percentage = value1Fraction * 100
+private fun itemOf(statistic: ColumnStatistic) = Item(
+    value1 = statistic.countNone,
+    value2 = statistic.countPresent,
+    totalValue = statistic.countNone + statistic.countPresent,
+)
 
-    Row(
-        modifier = modifier,
-        verticalAlignment = CenterVertically,
-    ) {
-        Text(
-            text = "$value1",
-            textAlign = End,
-            modifier = Modifier
-                .defaultMinSize(minWidth = 50.dp)
-                .padding(end = 8.dp),
-        )
-        if (value1 > 0) {
-            Box(
-                modifier = Modifier
-                    .weight(value1Fraction)
-                    .height(20.dp)
-                    .background(colorResource(colorOf(value1Percentage)))
-            )
-        }
-        if (value2 > 0) {
-            Box(
-                modifier = Modifier
-                    .weight(value2Fraction)
-                    .height(20.dp)
-                    .background(colorResource(R.color.schedule_statistic_bar_background_no_warning))
-            )
-        }
-        Text(
-            text = "$value2",
-            textAlign = Start,
-            modifier = Modifier
-                .defaultMinSize(minWidth = 50.dp)
-                .padding(start = 8.dp)
-        )
-    }
-}
-
+@Composable
 private fun colorOf(percentage: Float) = when {
-    percentage < 34 -> R.color.schedule_statistic_bar_background_warning_level_1
-    percentage < 67 -> R.color.schedule_statistic_bar_background_warning_level_2
-    else -> R.color.schedule_statistic_bar_background_warning_level_3
+    percentage < 34 -> EventFahrplanTheme.colorScheme.scheduleStatisticBarWarningLevel1Background
+    percentage < 67 -> EventFahrplanTheme.colorScheme.scheduleStatisticBarWarningLevel2Background
+    else -> EventFahrplanTheme.colorScheme.scheduleStatisticBarWarningLevel3Background
 }
 
 @MultiDevicePreview

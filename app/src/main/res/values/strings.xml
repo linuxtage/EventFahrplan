@@ -56,28 +56,6 @@
     </string>
     <string name="uptodate">Schedule is up to date.</string>
 
-    <!-- Schedule changes dialog -->
-    <string name="schedule_changes_dialog_title">Schedule update</string>
-    <string name="schedule_changes_dialog_updated_to_text">The schedule has been updated to\u0020</string>
-    <string name="schedule_changes_dialog_changed_new_cancelled_text">. There are changes in <xliff:g example="3 sessions" id="num_changes">%1$s</xliff:g>, <xliff:g example="2 are" id="num_new">%2$s</xliff:g> <xliff:g example="new" id="phrase_new">%3$s</xliff:g>, <xliff:g example="1 is" id="num_canceled">%4$s</xliff:g> <xliff:g example="cancelled" id="phrase_cancelled">%5$s</xliff:g>.</string>
-    <string name="schedule_changes_dialog_affected_text">The changes affect <xliff:g example="2" id="num_marked">%1$d</xliff:g> of your favored sessions.</string>
-    <plurals name="schedule_changes_dialog_phrase_new">
-        <item quantity="other">new</item>
-    </plurals>
-    <plurals name="schedule_changes_dialog_phrase_cancelled">
-        <item quantity="other">cancelled</item>
-    </plurals>
-    <plurals name="schedule_changes_dialog_number_of_sessions">
-        <item quantity="one"><xliff:g example="1" id="count">%d</xliff:g> session</item>
-        <item quantity="other"><xliff:g example="9" id="count">%d</xliff:g> sessions</item>
-    </plurals>
-    <plurals name="schedule_changes_dialog_being">
-        <item quantity="one"><xliff:g example="1" id="count">%d</xliff:g> is</item>
-        <item quantity="other"><xliff:g example="9" id="count">%d</xliff:g> are</item>
-    </plurals>
-    <string name="schedule_changes_dialog_browse">Browse</string>
-    <string name="schedule_changes_dialog_later">Later</string>
-
     <string name="navigate_back_content_description">Back</string>
     <string name="progress_loading_data">Get schedule &#8230;</string>
     <string name="progress_processing_data">Processing schedule &#8230;</string>
@@ -122,7 +100,7 @@
     <string name="copyright_notes" translatable="false">
         Copyright 2013-2025 johnjohndoe.
         \nCopyright 2011-2015 Daniel Dorau.
-        \n\nContributions from 0x5ubt13, Adriano Pereira Junior, Akarsh Seggemu, Александр Рознятовский, aligoush, Andrea Marziali, Andrulko, Andy Scherzinger, Andreas Schildbach, Animesh Verma, bashtian, bjoernb, Björn Olsson Jarl, ButterflyOfFire, cacarrara, Caio Volpato, Chase, cketti, codingcatgirl, Dominik Stadler, entropynil, erebion, ideadapt, isi_ko404, IsoLinearCHiP, Jasper van der Graaf, Joergi, Julius Vitkauskas, koelnkalkverbot, Larissa Yasin, lepawa, ligi, lucadelu, Luis Azcuaga, María Arias de Reyna, Mateus Baptista, Matthias Geisler, Matthias Hunstock, Matthias Mair, MichaelRocks, Miguel Beltran, mtpa, Muha Aliss, Nghiem Xuan Hien, NiciDieNase, Noemis, NWuensche, Oguz Yuksel, Omicron, ozgurbaykal, Poschi, Qwertele, Róbert Papp, Robin Janssens, rotrot, Sjors van Mierlo, Smarzaro, Stefan Medack, SubOptimal, Su Jade, taseret, Teeranai.P, Torsten Grote, Victor Herasme, Vladimir Alabov, Yanicka, zadintuvas.
+        \n\nContributions from 0x5ubt13, Adriano Pereira Junior, Akarsh Seggemu, Александр Рознятовский, aligoush, Andrea Marziali, Andrulko, Andy Scherzinger, Andreas Schildbach, Animesh Verma, bashtian, bjoernb, Björn Olsson Jarl, ButterflyOfFire, cacarrara, Caio Volpato, Chase, cketti, codingcatgirl, Dominik Stadler, e4ch, entropynil, erebion, ideadapt, isi_ko404, IsoLinearCHiP, Jasper van der Graaf, Joergi, Julius Vitkauskas, koelnkalkverbot, kpc21, Larissa Yasin, lepawa, ligi, lucadelu, Luis Azcuaga, María Arias de Reyna, Mateus Baptista, Matthias Geisler, Matthias Hunstock, Matthias Mair, MichaelRocks, Miguel Beltran, mtpa, Muha Aliss, Nghiem Xuan Hien, NiciDieNase, Noemis, NWuensche, Oguz Yuksel, Omicron, ozgurbaykal, Poschi, Qwertele, Róbert Papp, Robin Janssens, rotrot, Sjors van Mierlo, Smarzaro, Stefan Medack, SubOptimal, Su Jade, taseret, Teeranai.P, Torsten Grote, Victor Herasme, Vladimir Alabov, Yanicka, zadintuvas.
         \n\nPortions copyright 2008-2011 The K-9 Dog Walkers and 2006-2013 the Android Open Source Project.
     </string>
     <string name="today">today</string>
@@ -137,11 +115,27 @@
     <string name="favorites_no_favorites_title">No favorite sessions</string>
     <string name="favorites_no_favorites_subtitle">Tap on the star in the menu bar to set a favorite</string>
     <string name="schedule_changes">Schedule changes</string>
+    <!-- Schedule changes statistic -->
+    <string name="schedule_changes_statistic_title">Schedule update</string>
+    <string name="schedule_changes_statistic_update_to">Updated to schedule version: <xliff:g example="1.42.0" id="scheduleVersion">%s</xliff:g></string>
+    <string name="schedule_changes_statistic_new">New</string>
+    <string name="schedule_changes_statistic_new_content_description">New sessions: <xliff:g example="60" id="count">%d</xliff:g></string>
+    <string name="schedule_changes_statistic_changed">Changed</string>
+    <string name="schedule_changes_statistic_changed_content_description">Changed sessions: <xliff:g example="20" id="count">%d</xliff:g></string>
+    <string name="schedule_changes_statistic_canceled">Canceled</string>
+    <string name="schedule_changes_statistic_canceled_content_description">Canceled sessions: <xliff:g example="10" id="count">%d</xliff:g></string>
+    <string name="schedule_changes_statistic_later">Later</string>
+    <string name="schedule_changes_statistic_browse">Browse</string>
+    <string name="schedule_changes_statistic_total_sessions">Total number of sessions: <xliff:g example="100" id="totalSessions">%d</xliff:g></string>
 
     <string name="dash" translatable="false"><xliff:g id="dash">—</xliff:g></string>
     <string name="development_settings">Development</string>
     <string name="general_settings">General</string>
-    <string name="starred_sessions">Favorites</string>
+    <string name="favorites_screen_default_title">Favorites</string>
+    <plurals name="favorites_screen_title">
+        <item quantity="one"><xliff:g example="1" id="count">%d</xliff:g> favorite</item>
+        <item quantity="other"><xliff:g example="3" id="count">%d</xliff:g> favorites</item>
+    </plurals>
     <string name="choose_to_delete">Select sessions</string>
     <string name="day_separator">Day <xliff:g example="2" id="day_of_congress">%1$d</xliff:g> - <xliff:g example="12/29/14" id="date_of_congress_day">%2$s</xliff:g></string>
     <string name="day_separator_content_description">Day <xliff:g example="2" id="day_of_congress">%1$d</xliff:g>, <xliff:g example="December 29, 2014" id="date_of_congress_day">%2$s</xliff:g></string>

@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
 import android.text.TextUtils.TruncateAt
-import android.view.Gravity
 import android.view.Gravity.CENTER
 import android.view.LayoutInflater
 import android.view.Menu
@@ -35,6 +34,8 @@ import androidx.appcompat.app.ActionBar.NAVIGATION_MODE_LIST
 import androidx.appcompat.app.ActionBar.OnNavigationListener
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.MenuProvider
@@ -136,6 +137,8 @@ class FahrplanFragment : Fragment(), MenuProvider {
      * Used to redraw only the rooms that visually change (e.g. because a session is favored)
      */
     private val renderedRoomHashByRoomName = mutableMapOf<String, Int>()
+
+    private var currentDayIndex = -1
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -370,7 +373,9 @@ class FahrplanFragment : Fragment(), MenuProvider {
 
         // Clear the room hash cache when the day changes to ensure fresh data is loaded
         // fixes https://github.com/EventFahrplan/EventFahrplan/issues/767
-        renderedRoomHashByRoomName.clear()
+        if (currentDayIndex != scheduleData.dayIndex) {
+            renderedRoomHashByRoomName.clear()
+        }
 
         val roomScroller = layoutRoot.requireViewByIdCompat<HorizontalScrollView>(R.id.roomScroller)
         roomScroller.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
@@ -399,7 +404,9 @@ class FahrplanFragment : Fragment(), MenuProvider {
     /**
      * Adds `roomCount` room column views as child views to the first child
      * (which is a row layout) of the given [horizontalScroller] layout.
-     * Previously added child views are removed.
+     * To improve performance, rooms that have not changed are not re-rendered.
+     * This is controlled by the [renderedRoomHashByRoomName] hash map.
+     * Furthermore, when the day changes, previously added child views are removed.
      */
     private fun addRoomColumns(
         horizontalScroller: HorizontalSnapScrollView,
@@ -418,6 +425,14 @@ class FahrplanFragment : Fragment(), MenuProvider {
         val contentDescriptionFormatter = ContentDescriptionFormatter(ResourceResolver(context))
         val sessionPropertiesFormatter = SessionPropertiesFormatter(ResourceResolver(context))
         val isAlternativeHighlightingEnabled = AppRepository.readAlternativeHighlightingEnabled()
+
+        // Remove room columns when you change day.
+        // Fixes https://github.com/EventFahrplan/EventFahrplan/issues/783
+        if (currentDayIndex != scheduleData.dayIndex) {
+            columnsLayout.removeAllViews()
+        }
+
+        currentDayIndex = scheduleData.dayIndex
 
         for (roomIndex in roomDataList.indices) {
             val roomData = roomDataList[roomIndex]
@@ -602,15 +617,15 @@ class FahrplanFragment : Fragment(), MenuProvider {
             timeTextView.requireViewByIdCompat<TextView>(R.id.schedule_time_column_time_text_view).apply {
                 text = titleText
                 setTextColor(textColor)
-                gravity = Gravity.TOP or Gravity.END
                 updateLayoutParams {
                     width = resources.getDimensionPixelSize(R.dimen.schedule_time_column_layout_width) + timeTextColumnEdgeToEdge.leftWindowInset
                 }
-                if (isNow) {
-                    setBackgroundColor(ContextCompat.getColor(timeTextView.context, R.color.schedule_time_column_item_background_emphasized))
+                val color = if (isNow) {
+                    R.color.schedule_time_column_item_background_emphasized
                 } else {
-                    setBackgroundResource(R.drawable.schedule_time_column_time_text_background_normal)
+                    R.color.schedule_time_column_item_background_normal
                 }
+                setBackgroundColor(ContextCompat.getColor(timeTextView.context, color))
             }
         }
 
@@ -661,20 +676,20 @@ class FahrplanFragment : Fragment(), MenuProvider {
     private fun showAlarmTimePicker() {
         AlarmTimePickerFragment.show(this, FAHRPLAN_FRAGMENT_REQUEST_KEY) { requestKey, result ->
             if (requestKey == FAHRPLAN_FRAGMENT_REQUEST_KEY &&
-                result.containsKey(AlarmTimePickerFragment.ALARM_TIMES_INDEX_BUNDLE_KEY)
+                result.containsKey(AlarmTimePickerFragment.ALARM_TIME_BUNDLE_KEY)
             ) {
-                val alarmTimesIndex = result.getInt(AlarmTimePickerFragment.ALARM_TIMES_INDEX_BUNDLE_KEY)
-                onAlarmTimesIndexPicked(alarmTimesIndex)
+                val alarmTime = result.getInt(AlarmTimePickerFragment.ALARM_TIME_BUNDLE_KEY)
+                onAlarmTimePicked(alarmTime)
             }
         }
     }
 
-    private fun onAlarmTimesIndexPicked(alarmTimesIndex: Int) {
+    private fun onAlarmTimePicked(alarmTime: Int) {
         if (lastSelectedSession == null) {
-            logging.e(LOG_TAG, "onAlarmTimesIndexPicked: session: null. alarmTimesIndex: $alarmTimesIndex")
-            throw MissingLastSelectedSessionException(alarmTimesIndex)
+            logging.e(LOG_TAG, "onAlarmTimePicked: session: null. alarmTime: $alarmTime")
+            throw MissingLastSelectedSessionException(alarmTime)
         } else {
-            viewModel.addAlarm(lastSelectedSession!!, alarmTimesIndex)
+            viewModel.addAlarm(lastSelectedSession!!, alarmTime)
             updateMenuItems()
         }
     }
@@ -747,14 +762,15 @@ class FahrplanFragment : Fragment(), MenuProvider {
     ): RoomColumnData {
         // Prepare session data and spacings
         val sessionDataList = mutableListOf<SessionCardData>()
-        val spacings = mutableListOf<Int>()
+        val spacings = mutableListOf<Dp>()
 
         // Calculate initial spacing
         val firstSession = sessions.firstOrNull()
         if (firstSession != null) {
             val firstParams = layoutParamsBySession[firstSession.sessionId]
             val topMargin = firstParams?.topMargin ?: 0
-            spacings.add((topMargin / context.resources.displayMetrics.density).toInt())
+            val topMarginDp = (topMargin / context.resources.displayMetrics.density).dp
+            spacings.add(topMarginDp)
         }
 
         // Process each session
@@ -777,7 +793,7 @@ class FahrplanFragment : Fragment(), MenuProvider {
             val verticalPadding = (horizontalPadding * 0.3).toInt()
 
             val heightPx = layoutParams?.height ?: calculateSessionHeight(session)
-            val heightDp = (heightPx / context.resources.displayMetrics.density).toInt()
+            val heightDp = (heightPx / context.resources.displayMetrics.density).dp
             val showBorder = session.isHighlight && isAlternativeHighlightingEnabled
             val shortSession = session.duration.toWholeMinutes() <= Duration.ofMinutes(15).toWholeMinutes()
 
@@ -840,7 +856,8 @@ class FahrplanFragment : Fragment(), MenuProvider {
             // Append spacing to the session except for the last one
             if (index < sessions.size - 1) {
                 val bottomMargin = layoutParams?.bottomMargin ?: 0
-                spacings.add((bottomMargin / context.resources.displayMetrics.density).toInt())
+                val bottomMarginDp = (bottomMargin / context.resources.displayMetrics.density).dp
+                spacings.add(bottomMarginDp)
             }
         }
 
@@ -852,6 +869,6 @@ class FahrplanFragment : Fragment(), MenuProvider {
 
 }
 
-private class MissingLastSelectedSessionException(alarmTimesIndex: Int) : NullPointerException(
-    "Last selected session is null for alarm times index = $alarmTimesIndex."
+private class MissingLastSelectedSessionException(alarmTime: Int) : NullPointerException(
+    "Last selected session is null for alarm time = $alarmTime."
 )

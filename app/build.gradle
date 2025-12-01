@@ -197,13 +197,15 @@ dependencies {
     implementation Libs.kotlinCoroutinesAndroid
     implementation Libs.kotlinCoroutinesCore
     implementation Libs.lifecycleViewModel
+    implementation Libs.lifecycleViewModelCompose
     implementation Libs.markdownRender
     implementation Libs.material
+    implementation Libs.materialIconsCore
     implementation Libs.moshi
     ksp Libs.moshiCodeGen
+    implementation Libs.navigation
     implementation Libs.okhttp
     implementation Libs.okhttpLoggingInterceptor
-    implementation Libs.preference
     implementation Libs.roomStates
     implementation Libs.snackengagePlayrate
     implementation Libs.tracedroid
