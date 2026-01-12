@@ -109,7 +109,7 @@ internal class SessionsDBOpenHelper(context: Context) : SQLiteOpenHelper(
 ) {
 
     private companion object {
-        const val DATABASE_VERSION = 18
+        const val DATABASE_VERSION = 19
         const val DATABASE_NAME = "lectures" // Keep table name to avoid database migration.
 
         // language=sql
@@ -306,6 +306,12 @@ internal class SessionsDBOpenHelper(context: Context) : SQLiteOpenHelper(
         }
         if (oldVersion < 18) {
             // Clear database from glt24 to prepare for glt25
+            dropTableIfExist(SessionsTable.NAME)
+            dropTableIfExist(SessionByNotificationIdTable.NAME)
+            onCreate(this)
+        }
+        if (oldVersion < 19) {
+            // Clear database from glt25 to prepare for glt26
             dropTableIfExist(SessionsTable.NAME)
             dropTableIfExist(SessionByNotificationIdTable.NAME)
             onCreate(this)
