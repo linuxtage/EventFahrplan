@@ -86,6 +86,7 @@ class StarredListFragment :
      * The fragment's ListView/GridView.
      */
     private lateinit var currentListView: ListView
+    private lateinit var adapter: StarredListAdapter
 
     private var headerView: TextView? = null
 
@@ -109,10 +110,20 @@ class StarredListFragment :
             sidePane = it.getBoolean(BundleKeys.SIDEPANE)
         }
         requireActivity().addMenuProvider(this, this, RESUMED)
+        val activity = requireActivity()
+        val resourceResolving = ResourceResolver(activity)
+        adapter = StarredListAdapter(
+            context = activity,
+            list = emptyList(),
+            numDays = 0,
+            useDeviceTimeZone = false,
+            sessionPropertiesFormatting = SessionPropertiesFormatter(resourceResolving),
+            contentDescriptionFormatting = ContentDescriptionFormatter(resourceResolving),
+        )
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val contextThemeWrapper = ContextThemeWrapper(requireContext(), R.style.Theme_Congress_NoActionBar)
+        val contextThemeWrapper = ContextThemeWrapper(requireContext(), R.style.Theme_Congress)
         val localInflater = inflater.cloneInContext(contextThemeWrapper)
         val view: View
         val header: View
@@ -132,6 +143,7 @@ class StarredListFragment :
         currentListView.choiceMode = AbsListView.CHOICE_MODE_MULTIPLE_MODAL
         currentListView.setMultiChoiceModeListener(this)
         currentListView.setOnScrollListener(this)
+        currentListView.adapter = adapter
 
         view.applyHorizontalInsets()
         currentListView.applyBottomPadding()
@@ -149,22 +161,14 @@ class StarredListFragment :
     private fun observeViewModel() {
         viewModel.starredListParameter.observe(this) { (sessions, numDays, useDeviceTimeZone) ->
             starredList = sessions
-            val activity = requireActivity()
-            val resourceResolving = ResourceResolver(activity)
-            val adapter = StarredListAdapter(
-                context = activity,
-                list = sessions,
-                numDays = numDays,
-                useDeviceTimeZone = useDeviceTimeZone,
-                sessionPropertiesFormatting = SessionPropertiesFormatter(resourceResolving),
-                contentDescriptionFormatting = ContentDescriptionFormatter(resourceResolving),
-            )
-            currentListView.adapter = adapter
+            adapter.update(sessions, numDays, useDeviceTimeZone)
             updateHeaderOrTitleText(sessions.size)
-            activity.invalidateOptionsMenu()
+            requireActivity().invalidateOptionsMenu()
 
             loadingSpinnerView.isVisible = false
-            jumpOverPastSessions()
+            if (!preserveScrollPosition) {
+                jumpOverPastSessions()
+            }
         }
         viewModel.shareSimple.observe(viewLifecycleOwner) { formattedSession ->
             SessionSharer.shareSimple(requireContext(), formattedSession)
@@ -221,7 +225,7 @@ class StarredListFragment :
         super.onAttach(context)
         onSessionListClickListener = try {
             context as OnSessionListClick
-        } catch (e: ClassCastException) {
+        } catch (_: ClassCastException) {
             throw ClassCastException("$context must implement OnSessionListClick")
         }
     }

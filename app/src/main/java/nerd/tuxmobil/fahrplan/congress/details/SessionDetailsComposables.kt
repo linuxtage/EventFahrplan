@@ -25,12 +25,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -68,12 +71,14 @@ import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsProperty.MarkupLang
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsProperty.MarkupLanguage.Markdown
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsState.Loading
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsState.Success
+import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsViewEvent.OnSessionLinkClick
 import nerd.tuxmobil.fahrplan.congress.extensions.safeContentHorizontalAndBottomPadding
 import nerd.tuxmobil.fahrplan.congress.extensions.toTextUnit
 
 @Composable
 internal fun SessionDetailsScreen(
     sessionDetailsState: SessionDetailsState,
+    onViewEvent: (SessionDetailsViewEvent) -> Unit,
     showRoomState: Boolean,
     roomStateMessage: String,
 ) {
@@ -90,7 +95,7 @@ internal fun SessionDetailsScreen(
                     Loading -> Loading()
                     is Success -> {
                         val parameter = sessionDetailsState.sessionDetailsParameter as SessionDetails
-                        SessionDetails(parameter, showRoomState, roomStateMessage)
+                        SessionDetails(parameter, onViewEvent, showRoomState, roomStateMessage)
                     }
 
                 }
@@ -112,7 +117,12 @@ private val textLinkStyles: TextLinkStyles
     )
 
 @Composable
-fun SessionDetails(session: SessionDetails, showRoomState: Boolean, roomStateMessage: String) {
+fun SessionDetails(
+    session: SessionDetails,
+    onViewEvent: (SessionDetailsViewEvent) -> Unit,
+    showRoomState: Boolean,
+    roomStateMessage: String
+) {
     val htmlStyle = HtmlStyle(
         textLinkStyles = textLinkStyles,
     )
@@ -130,14 +140,19 @@ fun SessionDetails(session: SessionDetails, showRoomState: Boolean, roomStateMes
                     verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.session_details_common_space_between_sections)),
                 ) {
                     RoomState(showRoomState, roomStateMessage)
-                    Title(title)
+                    Title(title, showTitleBoxed)
                     Subtitle(subtitle)
                     SpeakerNames(speakerNames, Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_speaker_names)))
                     Abstract(abstract, htmlStyle)
                     Description(description, htmlStyle)
                     Links(links, htmlStyle, Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_section_header)))
                     TrackName(trackName, Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_section_header)))
-                    SessionLink(sessionLink, htmlStyle, Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_section_header)))
+                    SessionLink(
+                        sessionLink,
+                        htmlStyle,
+                        Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_section_header)),
+                        onClick = { onViewEvent(OnSessionLinkClick(it)) },
+                    )
                 }
             }
         }
@@ -205,18 +220,25 @@ private fun RoomState(showRoomState: Boolean, roomStateMessage: String) {
 @Composable
 private fun Title(
     property: SessionDetailsProperty<String>,
+    showBoxed: Boolean,
     modifier: Modifier = Modifier,
 ) {
     if (property.value.isNotEmpty()) {
         val fontSize = dimensionResource(R.dimen.session_details_title).toTextUnit()
         val multiplier = floatResource(R.dimen.session_details_title_line_spacing_multiplier)
         val lineHeight = fontSize.times(multiplier)
+        val backgroundColor = if (showBoxed) EventFahrplanTheme.colorScheme.onBackground else Color.Transparent
+        val padding = if (showBoxed) 8.dp else 0.dp
+        val textColor = if (showBoxed) EventFahrplanTheme.colorScheme.background else EventFahrplanTheme.colorScheme.onBackground
         TextSectionHeader(
             modifier = modifier
+                .background(backgroundColor)
+                .padding(padding)
                 .semantics {
                     contentDescription = property.contentDescription
                 },
             text = property.value,
+            color = textColor,
             fontSize = fontSize,
             lineHeight = lineHeight,
         )
@@ -288,13 +310,18 @@ private fun AbstractHtml(
     contentDescription: String,
     htmlStyle: HtmlStyle,
 ) {
-    TextSectionHeader(
-        modifier = Modifier
-            .semantics {
-                this.contentDescription = contentDescription
-            },
-        text = remember(text) { getAnnotatedString(text, htmlStyle) },
-    )
+    val annotatedString = remember(text, htmlStyle) {
+        getAnnotatedString(text, htmlStyle)
+    }
+    if (annotatedString != null) {
+        TextSectionHeader(
+            modifier = Modifier
+                .semantics {
+                    this.contentDescription = contentDescription
+                },
+            text = annotatedString,
+        )
+    }
 }
 
 
@@ -329,13 +356,18 @@ private fun DescriptionHtml(
     contentDescription: String,
     htmlStyle: HtmlStyle,
 ) {
-    TextSection(
-        modifier = Modifier
-            .semantics {
-                this.contentDescription = contentDescription
-            },
-        text = remember(text) { getAnnotatedString(text, htmlStyle) },
-    )
+    val annotatedString = remember(text, htmlStyle) {
+        getAnnotatedString(text, htmlStyle)
+    }
+    if (annotatedString != null) {
+        TextSection(
+            modifier = Modifier
+                .semantics {
+                    this.contentDescription = contentDescription
+                },
+            text = annotatedString,
+        )
+    }
 }
 
 @Composable
@@ -396,7 +428,10 @@ private fun Links(
     htmlStyle: HtmlStyle,
     modifier: Modifier = Modifier,
 ) {
-    if (property.value.isNotEmpty()) {
+    val annotatedString = remember(property.value, htmlStyle) {
+        getAnnotatedString(property.value, htmlStyle)
+    }
+    if (annotatedString != null) {
         Column(modifier = modifier) {
             TextSectionHeader(
                 text = stringResource(R.string.session_details_section_title_links),
@@ -406,7 +441,7 @@ private fun Links(
                     .semantics {
                         contentDescription = property.contentDescription
                     },
-                text = remember(property.value) { getAnnotatedString(property.value, htmlStyle) },
+                text = annotatedString,
             )
         }
     }
@@ -439,8 +474,21 @@ private fun SessionLink(
     sessionLink: String,
     htmlStyle: HtmlStyle,
     modifier: Modifier = Modifier,
+    onClick: (String) -> Unit,
 ) {
-    if (sessionLink.isNotEmpty()) {
+    val annotatedString = remember(sessionLink, htmlStyle) {
+        getAnnotatedString(
+            html = sessionLink,
+            htmlStyle = htmlStyle,
+            // Overwrite default link handler to open link externally
+            linkInteractionListener = { link ->
+                if (link is LinkAnnotation.Url) {
+                    onClick(link.url)
+                }
+            },
+        )
+    }
+    if (annotatedString != null) {
         val headerText = stringResource(R.string.session_details_section_title_session_online)
         val plainSessionLink = htmlToString(sessionLink)
         Column(modifier = modifier
@@ -452,7 +500,7 @@ private fun SessionLink(
                 text = headerText,
             )
             TextSection(
-                text = remember(sessionLink) { getAnnotatedString(sessionLink, htmlStyle) },
+                text = annotatedString,
             )
         }
     }
@@ -509,12 +557,14 @@ private fun TextSectionHeader(
 private fun TextSectionHeader(
     text: String,
     modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     lineHeight: TextUnit = TextUnit.Unspecified,
 ) {
     TextSection(
         modifier = modifier,
         text = text,
+        color = color,
         fontSize = fontSize,
         fontWeight = FontWeight.Bold,
         lineHeight = lineHeight,
@@ -542,6 +592,7 @@ private fun TextSection(
 private fun TextSection(
     text: String,
     modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
     fontSize: TextUnit = TextUnit.Unspecified,
     fontWeight: FontWeight? = null,
     lineHeight: TextUnit = TextUnit.Unspecified,
@@ -549,6 +600,7 @@ private fun TextSection(
     Text(
         modifier = modifier,
         text = text,
+        color = color,
         fontSize = if (fontSize == TextUnit.Unspecified) dimensionResource(R.dimen.session_details_text).toTextUnit() else fontSize,
         fontWeight = fontWeight,
         lineHeight = lineHeight,
@@ -574,8 +626,19 @@ private val orderedList: @Composable (MarkdownComponentModel) -> Unit = {
     })
 }
 
-private fun getAnnotatedString(html: String, htmlStyle: HtmlStyle) =
-    htmlToAnnotatedString(html, compactMode = true, htmlStyle)
+private fun getAnnotatedString(
+    html: String,
+    htmlStyle: HtmlStyle,
+    linkInteractionListener: LinkInteractionListener? = null,
+): AnnotatedString? {
+    val annotatedString = htmlToAnnotatedString(
+        html = html.trim(),
+        compactMode = true,
+        style = htmlStyle,
+        linkInteractionListener = linkInteractionListener,
+    )
+    return annotatedString.takeIf { it.isNotBlank() }
+}
 
 @MultiDevicePreview
 @Composable
@@ -596,6 +659,7 @@ private fun SessionDetailsScreenPreview() {
                 sessionLink = stringResource(R.string.placeholder_session_online),
             )
         ),
+        onViewEvent = {},
         showRoomState = true,
         roomStateMessage = stringResource(R.string.room_state_text),
     )
@@ -678,6 +742,7 @@ private fun DescriptionHtmlPreview() {
 private fun SessionDetailsScreenLoadingPreview() {
     SessionDetailsScreen(
         sessionDetailsState = Loading,
+        onViewEvent = {},
         showRoomState = false,
         roomStateMessage = stringResource(R.string.room_state_text),
     )
