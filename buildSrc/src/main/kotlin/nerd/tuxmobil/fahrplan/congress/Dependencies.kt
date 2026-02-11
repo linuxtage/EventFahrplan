@@ -10,15 +10,15 @@ object Config {
 
 object Android {
     const val buildToolsVersion = "36.0.0"
-    const val compileSdkVersion = 34
+    const val compileSdkVersion = 35
     const val minSdkVersion = 21
-    const val targetSdkVersion = 34
+    const val targetSdkVersion = 35
 }
 
 object Compose {
 
     private object Versions {
-        const val bom = "2025.04.00" // compileSdk 35 is required as of 2025.04.01
+        const val bom = "2025.11.01"
     }
 
     const val bom = "androidx.compose:compose-bom:${Versions.bom}"
@@ -31,13 +31,13 @@ object Compose {
 object Plugins {
 
     private object Versions {
-        const val android = "8.11.1"
+        const val android = "8.13.1"
         const val dexcount = "4.0.0"
-        const val kotlin = "2.2.0"
-        const val ksp = "2.2.0-2.0.2"
-        const val sonarQube = "6.2.0.5505"
+        const val kotlin = "2.2.21"
+        const val ksp = "2.3.3"
+        const val sonarQube = "7.1.0.6387"
         const val unMock = "0.9.0"
-        const val versions = "0.52.0"
+        const val versions = "0.53.0"
     }
 
     const val android = "com.android.tools.build:gradle:${Versions.android}"
@@ -53,35 +53,35 @@ object Plugins {
 object Libs {
 
     private object Versions {
-        const val activityCompose = "1.9.3" // compileSdk 35 is required as of 1.10.0
-        const val androidTest = "1.7.0" // compileSdk 35 is required as of 1.8.0
+        const val activityCompose = "1.10.1" // compileSdk 36 is required as of 1.11.0
+        const val androidTest = "1.9.0"
         const val annotation = "1.9.1"
         const val appCompat = "1.7.1"
         const val betterLinkMovementMethod = "2.2.0"
         const val constraintLayout = "2.2.1"
-        const val coreKtx = "1.13.1" // compileSdk 35 is required as of 1.15.0
+        const val coreKtx = "1.16.0" // compileSdk 36 is required as of 1.17.0
         const val coreTesting = "2.2.0"
         const val emailIntentBuilder = "2.0.0"
-        const val engelsystem = "10.0.0"
-        const val fragmentCompose = "1.8.8"
-        const val htmlConverter = "1.0.4" // compose 2025.04.01 is required as of 1.1.0
-        const val junitJupiter = "5.13.4"
-        const val junitPlatform = "1.13.4"
+        const val engelsystem = "11.0.0"
+        const val fragmentCompose = "1.8.9"
+        const val htmlConverter = "1.1.0"
+        const val junitJupiter = "5.14.0" // emulators on CI do not run junit 6 https://github.com/mannodermaus/android-junit5/issues/392
+        const val junitPlatform = "1.14.0" // emulators on CI do not run junit 6 https://github.com/mannodermaus/android-junit5/issues/392
         const val kotlinCoroutines = "1.10.2"
-        const val lifecycle = "2.8.7" // compileSdk 35 is required as of 2.9.0
-        const val markdownRenderer = "0.33.0" // compose 2025.04.01 is required as of 0.35.0
-        const val material = "1.12.0"
-        const val mockitoKotlin = "6.0.0"
+        const val lifecycle = "2.9.4" // minSdk 23 is required as of 2.10.0
+        const val markdownRenderer = "0.38.1"
+        const val material = "1.13.0"
+        const val materialIconsCore = "1.7.8"
+        const val mockitoKotlin = "6.1.0"
         const val moshi = "1.15.2"
-        const val okhttp = "4.12.0"
-        const val preference = "1.2.1"
-        const val retrofit = "2.11.0"
+        const val navigation = "2.9.6"
+        const val okhttp = "5.3.2"
         const val robolectric = "4.3_r2-robolectric-0"
-        const val roomStates = "1.0.1"
+        const val roomStates = "2.0.0"
         const val snackengage = "0.30"
-        const val threeTenBp = "1.7.1"
+        const val threeTenBp = "1.7.2"
         const val tracedroid = "3.1"
-        const val truth = "1.4.4"
+        const val truth = "1.4.4" // NoSuchFieldError as of 1.4.5, see https://github.com/google/truth/issues/1608
         const val turbine = "1.2.1"
     }
 
@@ -106,15 +106,18 @@ object Libs {
     const val kotlinCoroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.kotlinCoroutines}"
     const val kotlinCoroutinesTest = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinCoroutines}"
     const val lifecycleViewModel = "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.lifecycle}"
+    const val lifecycleViewModelCompose = "androidx.lifecycle:lifecycle-viewmodel-compose-android:${Versions.lifecycle}"
     const val lifecycleRuntime = "androidx.lifecycle:lifecycle-runtime-ktx:${Versions.lifecycle}"
     const val markdownRender = "com.mikepenz:multiplatform-markdown-renderer-m3:${Versions.markdownRenderer}"
     const val material = "com.google.android.material:material:${Versions.material}"
+    const val materialIconsCore = "androidx.compose.material:material-icons-core:${Versions.materialIconsCore}"
     const val mockitoKotlin = "org.mockito.kotlin:mockito-kotlin:${Versions.mockitoKotlin}"
     const val moshi = "com.squareup.moshi:moshi:${Versions.moshi}"
     const val moshiCodeGen = "com.squareup.moshi:moshi-kotlin-codegen:${Versions.moshi}"
+    const val navigation = "androidx.navigation:navigation-compose:${Versions.navigation}"
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
+    const val okhttpZstd = "com.squareup.okhttp3:okhttp-zstd:${Versions.okhttp}"
     const val okhttpLoggingInterceptor = "com.squareup.okhttp3:logging-interceptor:${Versions.okhttp}"
-    const val preference = "androidx.preference:preference-ktx:${Versions.preference}"
     const val robolectric = "org.robolectric:android-all:${Versions.robolectric}"
     const val roomStates = "info.metadude.kotlin.library.roomstates:room-states-repositories:${Versions.roomStates}"
     const val snackengagePlayrate = "com.github.ligi.snackengage:snackengage-playrate:${Versions.snackengage}"

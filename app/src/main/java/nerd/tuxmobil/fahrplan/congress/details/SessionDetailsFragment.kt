@@ -36,6 +36,8 @@ import nerd.tuxmobil.fahrplan.congress.R
 import nerd.tuxmobil.fahrplan.congress.alarms.AlarmServices
 import nerd.tuxmobil.fahrplan.congress.alarms.AlarmTimePickerFragment
 import nerd.tuxmobil.fahrplan.congress.calendar.CalendarSharing
+import nerd.tuxmobil.fahrplan.congress.commons.ExternalNavigation
+import nerd.tuxmobil.fahrplan.congress.commons.ExternalNavigator
 import nerd.tuxmobil.fahrplan.congress.commons.ResourceResolver
 import nerd.tuxmobil.fahrplan.congress.contract.BundleKeys
 import nerd.tuxmobil.fahrplan.congress.extensions.replaceFragment
@@ -55,6 +57,10 @@ class SessionDetailsFragment : Fragment(), MenuProvider {
         const val FRAGMENT_TAG = "detail"
         private const val SESSION_DETAILS_FRAGMENT_REQUEST_KEY = "SESSION_DETAILS_FRAGMENT_REQUEST_KEY"
 
+        fun newInstance(sidePane: Boolean): SessionDetailsFragment {
+            return SessionDetailsFragment().withArguments(BundleKeys.SIDEPANE to sidePane)
+        }
+
         fun replaceAtBackStack(fragmentManager: FragmentManager, @IdRes containerViewId: Int, sidePane: Boolean) {
             val fragment = SessionDetailsFragment().withArguments(
                 BundleKeys.SIDEPANE to sidePane
@@ -65,23 +71,21 @@ class SessionDetailsFragment : Fragment(), MenuProvider {
             }
         }
 
-        fun replace(fragmentManager: FragmentManager, @IdRes containerViewId: Int) {
-            val fragment = SessionDetailsFragment()
-            fragmentManager.replaceFragment(containerViewId, fragment, FRAGMENT_TAG)
-        }
-
     }
+
     private lateinit var postNotificationsPermissionRequestLauncher: ActivityResultLauncher<String>
     private lateinit var scheduleExactAlarmsPermissionRequestLauncher: ActivityResultLauncher<Intent>
     private lateinit var appRepository: AppRepository
     private lateinit var alarmServices: AlarmServices
     private lateinit var notificationHelper: NotificationHelper
+    private lateinit var externalNavigation: ExternalNavigation
     private val viewModel: SessionDetailsViewModel by viewModels {
         SessionDetailsViewModelFactory(
             appRepository = appRepository,
             resourceResolving = ResourceResolver(requireContext()),
             alarmServices = alarmServices,
             notificationHelper = notificationHelper,
+            externalNavigation = externalNavigation,
             defaultEngelsystemRoomName = AppRepository.ENGELSYSTEM_ROOM_NAME,
             customEngelsystemRoomName = getString(R.string.engelsystem_shifts_alias)
         )
@@ -112,6 +116,7 @@ class SessionDetailsFragment : Fragment(), MenuProvider {
         appRepository = AppRepository
         alarmServices = AlarmServices.newInstance(context, appRepository)
         notificationHelper = NotificationHelper(context)
+        externalNavigation = ExternalNavigator(context)
         contentDescriptionFormatting = ContentDescriptionFormatter(ResourceResolver(context))
     }
 
@@ -158,6 +163,7 @@ class SessionDetailsFragment : Fragment(), MenuProvider {
             @Suppress("KotlinConstantConditions")
             SessionDetailsScreen(
                 sessionDetailsState = sessionDetailsState.collectAsState().value,
+                onViewEvent = viewModel::onViewEvent,
                 showRoomState = showRoomState,
                 roomStateMessage = roomStateMessage.collectAsState().value,
             )
@@ -236,10 +242,10 @@ class SessionDetailsFragment : Fragment(), MenuProvider {
     private fun showAlarmTimePicker() {
         AlarmTimePickerFragment.show(this, SESSION_DETAILS_FRAGMENT_REQUEST_KEY) { requestKey, result ->
             if (requestKey == SESSION_DETAILS_FRAGMENT_REQUEST_KEY &&
-                result.containsKey(AlarmTimePickerFragment.ALARM_TIMES_INDEX_BUNDLE_KEY)
+                result.containsKey(AlarmTimePickerFragment.ALARM_TIME_BUNDLE_KEY)
             ) {
-                val alarmTimesIndex = result.getInt(AlarmTimePickerFragment.ALARM_TIMES_INDEX_BUNDLE_KEY)
-                viewModel.addAlarm(alarmTimesIndex)
+                val alarmTime = result.getInt(AlarmTimePickerFragment.ALARM_TIME_BUNDLE_KEY)
+                viewModel.addAlarm(alarmTime)
             }
         }
     }

@@ -37,7 +37,7 @@ in order to contribute to this project.
 * View program by day and rooms (side by side)
 * Custom grid layout for smartphones (**try landscape mode**) and tablets
 * Read detailed descriptions (speaker names, start time, room name, links, ...) of sessions
-* Search through all sessions
+* Search and filter through all sessions
 * Add sessions to favorites list
 * Export favorites list
 * Setup alarms for individual sessions
@@ -55,6 +55,7 @@ in order to contribute to this project.
 - Finnish 🇫🇮
 - French 🇫🇷
 - German 🇩🇪
+- German, Austria 🇦🇹
 - Italian 🇮🇹
 - Japanese 🇯🇵
 - Lithuanian 🇱🇹
@@ -110,7 +111,7 @@ After the merge, go to https://github.com/linuxtage/EventFahrplan/compare/glt-20
 
 ## Translations
 
-Text translations are managed on [Crowdin][crowdin-eventfahrplan-website]. Contributions are welcome!
+Text translations are managed on [Crowdin][crowdin-eventfahrplan-website]. Your [contributions](CONTRIBUTING.md) are welcome!
 
 Sources (English) and translations are synchronized via the [Crowdin CLI tool][crowdin-cli-tool-website].
 German is excluded from being managed on Crowdin as long as the maintainer is a native German speaker.
@@ -154,14 +155,14 @@ Portions Copyright 2008-2011 The K-9 Dog Walkers and 2006-2011 the Android Open 
 
 
 ```
-Copyright 2013-2025 johnjohndoe
+Copyright 2013-2026 johnjohndoe
 Copyright 2011-2015 Daniel Dorau
 Contributions from 0x5ubt13, Adriano Pereira Junior, Akarsh Seggemu,
-Александр Рознятовский, aligoush, Andrea Marziali, Andrulko, Andy Scherzinger,
+Александр Рознятовский, aligoush, Andrea Marziali, Andreas Wirth, Andrulko, Andy Scherzinger,
 Andreas Schildbach, Animesh Verma, bashtian, bjoernb, Björn Olsson Jarl,
-ButterflyOfFire, cacarrara, Caio Volpato, Chase, cketti, codingcatgirl,
-Dominik Stadler, entropynil, erebion, ideadapt, isi_ko404, IsoLinearCHiP,
-Jasper van der Graaf, Joergi, Julius Vitkauskas, koelnkalkverbot, Larissa Yasin,
+burned42, ButterflyOfFire, cacarrara, Caio Volpato, Chase, cketti, codingcatgirl,
+Dominik Stadler, e4ch, entropynil, erebion, ideadapt, isi_ko404, IsoLinearCHiP,
+Jasper van der Graaf, Joergi, Julius Vitkauskas, koelnkalkverbot, kpc21, Larissa Yasin,
 lepawa, ligi, lucadelu, Luis Azcuaga, María Arias de Reyna, Mateus Baptista,
 Matthias Geisler, Matthias Hunstock, Matthias Mair, MichaelRocks, Miguel Beltran,
 mtpa, Muha Aliss, Nghiem Xuan Hien, NiciDieNase, Noemis, NWuensche, Oguz Yuksel, Omicron,

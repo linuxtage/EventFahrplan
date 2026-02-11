@@ -4,10 +4,10 @@ import com.google.common.truth.Truth.assertThat
 import info.metadude.android.eventfahrplan.commons.temporal.Duration
 import info.metadude.android.eventfahrplan.commons.temporal.Moment
 import nerd.tuxmobil.fahrplan.congress.R
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.CANCELED
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.CHANGED
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.NEW
-import nerd.tuxmobil.fahrplan.congress.changes.SessionChangeProperty.ChangeState.UNCHANGED
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.CANCELED
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.CHANGED
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.NEW
+import nerd.tuxmobil.fahrplan.congress.changes.ChangeType.UNCHANGED
 import nerd.tuxmobil.fahrplan.congress.commons.DaySeparatorFactory
 import nerd.tuxmobil.fahrplan.congress.commons.DaySeparatorProperty
 import nerd.tuxmobil.fahrplan.congress.commons.FormattingDelegate
@@ -67,47 +67,47 @@ class SessionChangeParametersFactoryTest {
             title = SessionChangeProperty(
                 value = "Title",
                 contentDescription = "Title",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             subtitle = SessionChangeProperty(
                 value = "Subtitle",
                 contentDescription = "",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             videoRecordingState = SessionChangeProperty(
                 value = None,
                 contentDescription = "",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             speakerNames = SessionChangeProperty(
                 value = "Jane Doe, John Doe",
                 contentDescription = "",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             dayText = SessionChangeProperty(
                 value = SOME_DATE,
                 contentDescription = SOME_DATE,
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             startsAt = SessionChangeProperty(
                 value = SOME_TIME,
                 contentDescription = "",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             duration = SessionChangeProperty(
                 value = "30",
                 contentDescription = "",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             roomName = SessionChangeProperty(
                 value = "Main room",
                 contentDescription = "",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             languages = SessionChangeProperty(
                 value = "de, en",
                 contentDescription = "",
-                changeState = UNCHANGED,
+                changeType = UNCHANGED,
             ),
             isCanceled = false,
         )
@@ -136,47 +136,47 @@ class SessionChangeParametersFactoryTest {
             title = SessionChangeProperty(
                 value = "Title",
                 contentDescription = "Title",
-                changeState = NEW,
+                changeType = NEW,
             ),
             subtitle = SessionChangeProperty(
                 value = "Subtitle",
                 contentDescription = "",
-                changeState = NEW,
+                changeType = NEW,
             ),
             videoRecordingState = SessionChangeProperty(
                 value = None,
                 contentDescription = "",
-                changeState = NEW,
+                changeType = NEW,
             ),
             speakerNames = SessionChangeProperty(
                 value = "Jane Doe, John Doe",
                 contentDescription = "",
-                changeState = NEW,
+                changeType = NEW,
             ),
             dayText = SessionChangeProperty(
                 value = SOME_DATE,
                 contentDescription = SOME_DATE,
-                changeState = NEW,
+                changeType = NEW,
             ),
             startsAt = SessionChangeProperty(
                 value = SOME_TIME,
                 contentDescription = "",
-                changeState = NEW,
+                changeType = NEW,
             ),
             duration = SessionChangeProperty(
                 value = "30",
                 contentDescription = "",
-                changeState = NEW,
+                changeType = NEW,
             ),
             roomName = SessionChangeProperty(
                 value = "Main room",
                 contentDescription = "",
-                changeState = NEW,
+                changeType = NEW,
             ),
             languages = SessionChangeProperty(
                 value = "de, en",
                 contentDescription = "",
-                changeState = NEW,
+                changeType = NEW,
             ),
             isCanceled = false,
         )
@@ -205,47 +205,47 @@ class SessionChangeParametersFactoryTest {
             title = SessionChangeProperty(
                 value = "Title",
                 contentDescription = "Title",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             subtitle = SessionChangeProperty(
                 value = "Subtitle",
                 contentDescription = "",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             videoRecordingState = SessionChangeProperty(
                 value = None,
                 contentDescription = "",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             speakerNames = SessionChangeProperty(
                 value = "Jane Doe, John Doe",
                 contentDescription = "",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             dayText = SessionChangeProperty(
                 value = SOME_DATE,
                 contentDescription = SOME_DATE,
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             startsAt = SessionChangeProperty(
                 value = SOME_TIME,
                 contentDescription = "",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             duration = SessionChangeProperty(
                 value = "30",
                 contentDescription = "",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             roomName = SessionChangeProperty(
                 value = "Main room",
                 contentDescription = "",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             languages = SessionChangeProperty(
                 value = "de, en",
                 contentDescription = "",
-                changeState = CANCELED,
+                changeType = CANCELED,
             ),
             isCanceled = true,
         )
@@ -274,47 +274,47 @@ class SessionChangeParametersFactoryTest {
             title = SessionChangeProperty(
                 value = "Title",
                 contentDescription = "Title",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             subtitle = SessionChangeProperty(
                 value = "Subtitle",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             videoRecordingState = SessionChangeProperty(
                 value = Available,
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             speakerNames = SessionChangeProperty(
                 value = "Jane Doe, John Doe",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             dayText = SessionChangeProperty(
                 value = SOME_DATE,
                 contentDescription = SOME_DATE,
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             startsAt = SessionChangeProperty(
                 value = SOME_TIME,
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             duration = SessionChangeProperty(
                 value = "30",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             roomName = SessionChangeProperty(
                 value = "Main room",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             languages = SessionChangeProperty(
                 value = "de, en",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             isCanceled = false,
         )
@@ -343,47 +343,47 @@ class SessionChangeParametersFactoryTest {
             title = SessionChangeProperty(
                 value = "-",
                 contentDescription = "-",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             subtitle = SessionChangeProperty(
                 value = "-",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             videoRecordingState = SessionChangeProperty(
                 value = Unavailable,
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             speakerNames = SessionChangeProperty(
                 value = "-",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             dayText = SessionChangeProperty(
                 value = SOME_DATE,
                 contentDescription = SOME_DATE,
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             startsAt = SessionChangeProperty(
                 value = SOME_TIME,
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             duration = SessionChangeProperty(
                 value = "30",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             roomName = SessionChangeProperty(
                 value = "",
                 contentDescription = "",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             languages = SessionChangeProperty(
                 value = "-",
                 contentDescription = "Language information has been removed",
-                changeState = CHANGED,
+                changeType = CHANGED,
             ),
             isCanceled = false,
         )
@@ -400,8 +400,8 @@ class SessionChangeParametersFactoryTest {
             FakeFormattingDelegate(),
         )
         val sessions = listOf(
-            createUnchangedSession(dayIndex = 0),
             createUnchangedSession(dayIndex = 1),
+            createUnchangedSession(dayIndex = 2),
         )
         val actual = factory.createSessionChangeParameters(sessions, useDeviceTimeZone = true)
         assertThat(actual).hasSize(3)
@@ -416,7 +416,7 @@ class SessionChangeParametersFactoryTest {
 
 }
 
-private fun createUnchangedSession(dayIndex: Int = 0) = Session(
+private fun createUnchangedSession(dayIndex: Int = 1) = Session(
     sessionId = "2342",
     title = "Title",
     subtitle = "Subtitle",
@@ -449,6 +449,7 @@ private fun createNewSession() = Session(
     recordingOptOut = false,
     speakers = listOf("Jane Doe", "John Doe"),
     dateUTC = 1439478900000L,
+    dayIndex = 1,
     duration = Duration.ofMinutes(30),
     roomName = "Main room",
     language = "de, en",
@@ -474,6 +475,7 @@ private fun createCanceledSession() = Session(
     recordingOptOut = false,
     speakers = listOf("Jane Doe", "John Doe"),
     dateUTC = 1439478900000L,
+    dayIndex = 1,
     duration = Duration.ofMinutes(30),
     roomName = "Main room",
     language = "de, en",
@@ -499,6 +501,7 @@ private fun createChangedSession() = Session(
     recordingOptOut = false,
     speakers = listOf("Jane Doe", "John Doe"),
     dateUTC = 1439478900000L,
+    dayIndex = 1,
     duration = Duration.ofMinutes(30),
     roomName = "Main room",
     language = "de, en",
@@ -524,6 +527,7 @@ private fun createChangedEmptySession() = Session(
     recordingOptOut = true,
     speakers = emptyList(),
     dateUTC = 1439478900000L,
+    dayIndex = 1,
     duration = Duration.ofMinutes(30),
     roomName = "",
     language = "",

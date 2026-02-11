@@ -59,6 +59,7 @@ class AppRepositoryUncanceledSessionsForDayIndexTest {
                 scheduleNetworkRepository = mock(),
                 engelsystemRepository = mock(),
                 sharedPreferencesRepository = createSharedPreferencesRepository(),
+                settingsRepository = mock(),
                 sessionsTransformer = sessionsTransformer,
             )
             return this
@@ -258,13 +259,10 @@ class AppRepositoryUncanceledSessionsForDayIndexTest {
     }
 
     private fun createAlarm() = AlarmAppModel(
-        alarmTimeInMin = 0,
         dayIndex = dayIndex,
-        displayTime = 0,
         sessionId = sessionId,
         sessionTitle = "",
         startTime = Moment.ofEpochMilli(0),
-        timeText = "",
     )
 
     private fun createScheduleData(session: SessionAppModel): ScheduleData {

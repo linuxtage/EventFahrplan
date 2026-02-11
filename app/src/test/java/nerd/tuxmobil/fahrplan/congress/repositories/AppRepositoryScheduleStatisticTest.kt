@@ -37,6 +37,7 @@ class AppRepositoryScheduleStatisticTest {
                 scheduleNetworkRepository = mock(),
                 engelsystemRepository = mock(),
                 sharedPreferencesRepository = mock(),
+                settingsRepository = mock(),
                 sessionsTransformer = mock()
             )
             return this
@@ -93,6 +94,12 @@ private class InMemorySessionDatabaseRepository : SessionsDatabaseRepository {
         throw NotImplementedError()
 
     override fun querySessionBySessionId(sessionId: String) =
+        throw NotImplementedError()
+
+    override fun querySessionsBySlugInFeedbackUrl(slug: String) =
+        throw NotImplementedError()
+
+    override fun querySessionsBySlugInSlug(slug: String) =
         throw NotImplementedError()
 
     override fun querySessionsForDayIndexOrderedByDateUtc(dayIndex: Int) =

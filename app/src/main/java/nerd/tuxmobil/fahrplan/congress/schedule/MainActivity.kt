@@ -16,7 +16,8 @@ import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.core.view.MenuProvider
@@ -27,6 +28,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentManager.OnBackStackChangedListener
 import androidx.lifecycle.Lifecycle.State.RESUMED
 import info.metadude.android.eventfahrplan.commons.flow.observe
+import info.metadude.android.eventfahrplan.commons.logging.Logging
 import nerd.tuxmobil.fahrplan.congress.R
 import nerd.tuxmobil.fahrplan.congress.about.AboutDialog
 import nerd.tuxmobil.fahrplan.congress.alarms.AlarmsActivity
@@ -36,19 +38,23 @@ import nerd.tuxmobil.fahrplan.congress.base.BaseActivity
 import nerd.tuxmobil.fahrplan.congress.base.OnSessionItemClickListener
 import nerd.tuxmobil.fahrplan.congress.changes.ChangeListActivity
 import nerd.tuxmobil.fahrplan.congress.changes.ChangeListFragment
-import nerd.tuxmobil.fahrplan.congress.changes.ChangeStatistic
-import nerd.tuxmobil.fahrplan.congress.changes.ChangesDialog
+import nerd.tuxmobil.fahrplan.congress.changes.statistic.ChangeStatisticsUiState
+import nerd.tuxmobil.fahrplan.congress.changes.statistic.ChangeStatisticScreen
 import nerd.tuxmobil.fahrplan.congress.contract.BundleKeys
+import nerd.tuxmobil.fahrplan.congress.contract.BundleKeys.SCHEDULE_UPDATE_NOTIFICATION
+import nerd.tuxmobil.fahrplan.congress.designsystem.themes.EventFahrplanTheme
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsActivity
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsFragment
 import nerd.tuxmobil.fahrplan.congress.engagements.initUserEngagement
+import nerd.tuxmobil.fahrplan.congress.extensions.applyEdgeToEdgeInsets
+import nerd.tuxmobil.fahrplan.congress.extensions.applyToolbar
 import nerd.tuxmobil.fahrplan.congress.extensions.isLandscape
 import nerd.tuxmobil.fahrplan.congress.extensions.withExtras
 import nerd.tuxmobil.fahrplan.congress.favorites.StarredListActivity
 import nerd.tuxmobil.fahrplan.congress.favorites.StarredListFragment
-import nerd.tuxmobil.fahrplan.congress.net.CertificateErrorFragment
-import nerd.tuxmobil.fahrplan.congress.net.ErrorMessage
-import nerd.tuxmobil.fahrplan.congress.net.HttpStatus
+import nerd.tuxmobil.fahrplan.congress.net.errors.ErrorMessage
+import nerd.tuxmobil.fahrplan.congress.net.errors.ErrorMessage.TitledMessage
+import nerd.tuxmobil.fahrplan.congress.net.errors.ErrorMessageScreen
 import nerd.tuxmobil.fahrplan.congress.notifications.NotificationHelper
 import nerd.tuxmobil.fahrplan.congress.reporting.TraceDroidEmailSender
 import nerd.tuxmobil.fahrplan.congress.repositories.AppRepository
@@ -59,8 +65,7 @@ import nerd.tuxmobil.fahrplan.congress.search.SearchFragment
 import nerd.tuxmobil.fahrplan.congress.settings.SettingsActivity
 import nerd.tuxmobil.fahrplan.congress.sidepane.OnSidePaneCloseListener
 import nerd.tuxmobil.fahrplan.congress.utils.ConfirmationDialog.OnConfirmationDialogClicked
-import nerd.tuxmobil.fahrplan.congress.utils.showWhenLockedCompat
-import androidx.core.graphics.drawable.toDrawable
+import nerd.tuxmobil.fahrplan.congress.utils.setShowWhenLockedCompat
 
 class MainActivity : BaseActivity(),
     MenuProvider,
@@ -73,6 +78,7 @@ class MainActivity : BaseActivity(),
 
     companion object {
 
+        private const val LOG_TAG = "MainActivity"
         private const val INVALID_NOTIFICATION_ID = -1
 
         lateinit var instance: MainActivity
@@ -104,9 +110,10 @@ class MainActivity : BaseActivity(),
     private lateinit var keyguardManager: KeyguardManager
     private lateinit var errorMessageFactory: ErrorMessage.Factory
     private lateinit var progressBar: ContentLoadingProgressBar
+    private val logging = Logging.get()
     private var progressDialog: ProgressDialog? = null
     private val viewModel: MainViewModel by viewModels {
-        MainViewModelFactory(AppRepository, notificationHelper)
+        MainViewModelFactory(AppRepository, notificationHelper, errorMessageFactory)
     }
 
     private var isScreenLocked = false
@@ -117,7 +124,7 @@ class MainActivity : BaseActivity(),
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        showWhenLockedCompat()
+        setShowWhenLockedCompat(AppRepository.readShowOnLockscreenEnabled())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -126,19 +133,28 @@ class MainActivity : BaseActivity(),
         setContentView(R.layout.main)
         addMenuProvider(this, this, RESUMED)
 
+        logging.report(LOG_TAG, buildString {
+            append("MainActivity#onCreate: ")
+            append("thread=${Thread.currentThread().name}, ")
+            append("savedState=${savedInstanceState != null}, ")
+            append("isScheduleUpdate=${intent.getBooleanExtra(SCHEDULE_UPDATE_NOTIFICATION, false)}, ")
+            append("isSessionAlarm=${intent.getStringExtra(BundleKeys.SESSION_ALARM_SESSION_ID) != null}")
+        })
+
         notificationHelper = NotificationHelper(this)
 
         keyguardManager = getSystemService()!!
         errorMessageFactory = ErrorMessage.Factory(this)
         val toolbar = requireViewByIdCompat<Toolbar>(R.id.toolbar)
+        applyToolbar(toolbar) {
+            title = if (isLandscape()) getString(R.string.app_name) else ""
+            setDisplayShowHomeEnabled(true)
+            setDefaultDisplayHomeAsUpEnabled(true)
+        }
         progressBar = requireViewByIdCompat(R.id.progress)
 
-        setSupportActionBar(toolbar)
-        supportActionBar!!.title = if (isLandscape()) getString(R.string.app_name) else ""
-        supportActionBar!!.setDisplayShowHomeEnabled(true)
-        supportActionBar!!.setDefaultDisplayHomeAsUpEnabled(true)
-        val actionBarColor = ContextCompat.getColor(this, R.color.colorActionBar)
-        supportActionBar!!.setBackgroundDrawable(actionBarColor.toDrawable())
+        val rootLayout = requireViewByIdCompat<View>(R.id.root_layout)
+        rootLayout.applyEdgeToEdgeInsets()
 
         TraceDroidEmailSender.sendStackTraces(this)
         resetProgressDialog()
@@ -153,26 +169,63 @@ class MainActivity : BaseActivity(),
         initUserEngagement()
         observeViewModel()
         onSessionAlarmNotificationTapped(intent)
+        onScheduleUpdateNotificationTapped(intent)
         viewModel.checkPostNotificationsPermission()
+        window.decorView.post { handleAppLink(intent) }
+    }
+
+    private fun handleAppLink(intent: Intent) {
+        if (intent.action == Intent.ACTION_VIEW) {
+            intent.data?.let {
+                viewModel.openSessionDetailsFromAppLink(it)
+            }
+        }
+    }
+
+    @Composable
+    private fun ScheduleChangeStatistics(state: ChangeStatisticsUiState) {
+        EventFahrplanTheme {
+            ChangeStatisticScreen(
+                uiState = state,
+                onConfirm = { viewModel.onCloseChangeStatisticsScreen(shouldOpenSessionChanges = true) },
+                onDismiss = { viewModel.onCloseChangeStatisticsScreen(shouldOpenSessionChanges = false) },
+            )
+        }
+    }
+
+    @Composable
+    private fun ErrorMessage(errorMessage: TitledMessage) {
+        EventFahrplanTheme {
+            ErrorMessageScreen(
+                errorMessage = errorMessage,
+                onConfirm = viewModel::onCloseErrorMessageScreen,
+                onDismiss = viewModel::onCloseErrorMessageScreen,
+            )
+        }
     }
 
     private fun observeViewModel() {
         viewModel.loadScheduleUiState.observe(this) {
             updateUi(it)
         }
-        viewModel.fetchFailure.observe(this) {
-            it?.let {
-                showErrorDialog(it.httpStatus, it.hostName, it.exceptionMessage)
+        viewModel.errorMessage.observe(this) { errorMessage ->
+            requireViewByIdCompat<ComposeView>(R.id.error_message_view).setContent {
+                errorMessage?.let { ErrorMessage(it) }
             }
         }
-        viewModel.parseFailure.observe(this) {
-            it?.let {
-                val errorMessage = errorMessageFactory.getMessageForParsingResult(it)
-                errorMessage.show(this, shouldShowLong = true)
+        viewModel.simpleErrorMessageUiState.observe(this) { state ->
+            state?.let {
+                val duration = if (it.shouldShowLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+                Toast.makeText(this, it.errorMessage.message, duration).show()
             }
         }
-        viewModel.scheduleChangesParameter.observe(this) { (scheduleVersion, changeStatistic) ->
-            showChangesDialog(scheduleVersion, changeStatistic)
+        viewModel.changeStatisticsUiState.observe(this) { state ->
+            requireViewByIdCompat<ComposeView>(R.id.schedule_changes_statistic_view).setContent {
+                state?.let { ScheduleChangeStatistics(it) }
+            }
+        }
+        viewModel.openSessionChanges.observe(this) {
+            openSessionChanges()
         }
         viewModel.showAbout.observe(this) {
             showAboutDialog()
@@ -201,22 +254,30 @@ class MainActivity : BaseActivity(),
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        logging.report(LOG_TAG, buildString {
+            append("MainActivity#onNewIntent: ")
+            append("thread=${Thread.currentThread().name}, ")
+            append("isScheduleUpdate=${intent.getBooleanExtra(SCHEDULE_UPDATE_NOTIFICATION, false)}, ")
+            append("isSessionAlarm=${intent.getStringExtra(BundleKeys.SESSION_ALARM_SESSION_ID) != null}")
+        })
         onSessionAlarmNotificationTapped(intent)
+        onScheduleUpdateNotificationTapped(intent)
+        handleAppLink(intent)
     }
 
     private fun onSessionAlarmNotificationTapped(intent: Intent) {
         val notificationId = intent.getIntExtra(BundleKeys.SESSION_ALARM_NOTIFICATION_ID, INVALID_NOTIFICATION_ID)
         if (notificationId != INVALID_NOTIFICATION_ID) {
+            logging.report(LOG_TAG, "Tapped session alarm notification.")
             viewModel.deleteSessionAlarmNotificationId(notificationId)
         }
     }
 
-    private fun showErrorDialog(httpStatus: HttpStatus, hostName: String, exceptionMessage: String) {
-        if (httpStatus == HttpStatus.HTTP_LOGIN_FAIL_UNTRUSTED_CERTIFICATE) {
-            CertificateErrorFragment.showDialog(supportFragmentManager, exceptionMessage)
-        } else {
-            val errorMessage = errorMessageFactory.getMessageForHttpStatus(httpStatus, hostName)
-            errorMessage.show(context = this, shouldShowLong = false)
+    private fun onScheduleUpdateNotificationTapped(intent: Intent) {
+        val isScheduleUpdateNotification = intent.getBooleanExtra(SCHEDULE_UPDATE_NOTIFICATION, false)
+        if (isScheduleUpdateNotification) {
+            logging.report(LOG_TAG, "Tapped schedule update notification.")
+            intent.removeExtra(SCHEDULE_UPDATE_NOTIFICATION)
         }
     }
 
@@ -235,15 +296,6 @@ class MainActivity : BaseActivity(),
         }
         if (sidePaneView != null && isFavoritesInSidePane) {
             sidePaneView.isVisible = !isScreenLocked
-        }
-    }
-
-    private fun showChangesDialog(scheduleVersion: String, changeStatistic: ChangeStatistic) {
-        val fragment = findFragment(ChangesDialog.FRAGMENT_TAG)
-        if (fragment == null) {
-            ChangesDialog
-                .newInstance(scheduleVersion, changeStatistic)
-                .show(supportFragmentManager, ChangesDialog.FRAGMENT_TAG)
         }
     }
 
@@ -332,6 +384,11 @@ class MainActivity : BaseActivity(),
                         // TODO Handle schedule update in AppRepository; above code becomes needless
                         viewModel.requestScheduleUpdate(isUserRequest = true)
                     }
+                    val isShowOnLockscreenUpdated = resources.getBoolean(
+                        R.bool.bundle_key_show_on_lockscreen_updated_default_value)
+                    if (intent.getBooleanExtra(BundleKeys.SHOW_ON_LOCKSCREEN_UPDATED, isShowOnLockscreenUpdated)) {
+                        setShowWhenLockedCompat(AppRepository.readShowOnLockscreenEnabled())
+                    }
                 }
         }
     }
@@ -398,7 +455,7 @@ class MainActivity : BaseActivity(),
         }
     }
 
-    fun openSessionChanges() {
+    private fun openSessionChanges() {
         val sidePaneView = findViewById<FragmentContainerView>(R.id.detail)
         if (sidePaneView == null) {
             ChangeListActivity.start(this)
@@ -415,7 +472,7 @@ class MainActivity : BaseActivity(),
         } else {
             sidePaneView.isVisible = true
             isSearchInSidePane = true
-            SearchFragment.replaceAtBackStack(supportFragmentManager, R.id.detail, true)
+            SearchFragment.replaceAtBackStack(supportFragmentManager, R.id.detail)
         }
     }
 

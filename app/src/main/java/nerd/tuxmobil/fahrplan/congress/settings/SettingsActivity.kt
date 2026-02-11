@@ -3,14 +3,12 @@ package nerd.tuxmobil.fahrplan.congress.settings
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
-import androidx.fragment.app.commit
-import nerd.tuxmobil.fahrplan.congress.R
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import nerd.tuxmobil.fahrplan.congress.base.BaseActivity
-import androidx.core.graphics.drawable.toDrawable
+import nerd.tuxmobil.fahrplan.congress.designsystem.themes.EventFahrplanTheme
 
-class SettingsActivity : BaseActivity(R.layout.settings) {
+class SettingsActivity : BaseActivity() {
 
     companion object {
 
@@ -24,17 +22,27 @@ class SettingsActivity : BaseActivity(R.layout.settings) {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val toolbar = requireViewByIdCompat<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        val actionBarColor = ContextCompat.getColor(this, R.color.colorActionBar)
-        supportActionBar!!.setBackgroundDrawable(actionBarColor.toDrawable())
 
-        if (savedInstanceState == null) {
-            supportFragmentManager.commit {
-                add(R.id.container, SettingsFragment())
+        setContent {
+            EventFahrplanTheme {
+                SettingsScreen(
+                    onBack = { onBackPressedDispatcher.onBackPressed() },
+                    onSetActivityResult = ::setActivityResult
+                )
             }
         }
+    }
+
+    private fun setActivityResult(keys: List<String>) {
+        val resultIntent = Intent().apply {
+            for (key in keys) {
+                putExtra(key, true)
+            }
+        }
+
+        setResult(RESULT_OK, resultIntent)
     }
 
 }

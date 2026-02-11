@@ -1,6 +1,7 @@
 package nerd.tuxmobil.fahrplan.congress.schedule
 
 import androidx.annotation.ColorRes
+import androidx.compose.ui.unit.Dp
 
 data class SessionCardData(
     val sessionId: String,
@@ -13,11 +14,11 @@ data class SessionCardData(
     val stateContentDescription: String,
     val innerHorizontalPadding: Float,
     val innerVerticalPadding: Float,
-    val cardHeight: Int,
+    val cardHeight: Dp,
     val isFavored: Boolean,
     val hasAlarm: Boolean,
     val showBorder: Boolean,
     val shouldShowShareSubMenu: Boolean,
-    @ColorRes val backgroundColor: Int,
-    @ColorRes val textColor: Int,
+    @param:ColorRes val backgroundColor: Int,
+    @param:ColorRes val textColor: Int,
 )

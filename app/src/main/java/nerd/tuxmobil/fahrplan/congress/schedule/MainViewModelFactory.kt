@@ -3,15 +3,17 @@ package nerd.tuxmobil.fahrplan.congress.schedule
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import info.metadude.android.eventfahrplan.commons.logging.Logging
+import nerd.tuxmobil.fahrplan.congress.applinks.SlugFactory
+import nerd.tuxmobil.fahrplan.congress.changes.statistic.ChangeStatisticsUiStateFactory
+import nerd.tuxmobil.fahrplan.congress.net.errors.ErrorMessage
 import nerd.tuxmobil.fahrplan.congress.notifications.NotificationHelper
 import nerd.tuxmobil.fahrplan.congress.repositories.AppExecutionContext
 import nerd.tuxmobil.fahrplan.congress.repositories.AppRepository
 
 internal class MainViewModelFactory(
-
     private val repository: AppRepository,
-    private val notificationHelper: NotificationHelper
-
+    private val notificationHelper: NotificationHelper,
+    private val errorMessageFactory: ErrorMessage.Factory,
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -20,8 +22,12 @@ internal class MainViewModelFactory(
         return MainViewModel(
             repository = repository,
             notificationHelper = notificationHelper,
+            changeStatisticsUiStateFactory = ChangeStatisticsUiStateFactory(
+                logging = logging,
+            ),
+            errorMessageFactory = errorMessageFactory,
+            slugFactory = SlugFactory(),
             executionContext = AppExecutionContext,
-            logging = logging
         ) as T
     }
 

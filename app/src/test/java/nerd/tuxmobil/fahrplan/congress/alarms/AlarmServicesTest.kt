@@ -14,7 +14,6 @@ import info.metadude.android.eventfahrplan.commons.testing.verifyInvokedOnce
 import nerd.tuxmobil.fahrplan.congress.NoLogging
 import nerd.tuxmobil.fahrplan.congress.alarms.AlarmReceiver.AlarmIntentFactory.Companion.ALARM_DELETE
 import nerd.tuxmobil.fahrplan.congress.alarms.AlarmReceiver.AlarmIntentFactory.Companion.ALARM_SESSION
-import nerd.tuxmobil.fahrplan.congress.commons.FormattingDelegate
 import nerd.tuxmobil.fahrplan.congress.commons.PendingIntentDelegate
 import nerd.tuxmobil.fahrplan.congress.contract.BundleKeys
 import nerd.tuxmobil.fahrplan.congress.extensions.getMomentExtra
@@ -22,7 +21,6 @@ import nerd.tuxmobil.fahrplan.congress.models.Alarm
 import nerd.tuxmobil.fahrplan.congress.models.SchedulableAlarm
 import nerd.tuxmobil.fahrplan.congress.models.Session
 import nerd.tuxmobil.fahrplan.congress.repositories.AppRepository
-import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
@@ -36,7 +34,6 @@ class AlarmServicesTest {
     private var alarmManager = mock<AlarmManager>()
     private var mockContext = mock<Context>()
     private var repository = mock<AppRepository>()
-    private val alarmTimesValues = listOf("0", "10", "60")
     private val alarm = SchedulableAlarm(
         dayIndex = 3,
         sessionId = "1001",
@@ -58,10 +55,8 @@ class AlarmServicesTest {
 
     @Test
     fun `addSessionAlarm schedules a session alarm`() {
-        val formattingDelegate = mock<FormattingDelegate>()
-        val alarmServices = createAlarmServices(formattingDelegate = formattingDelegate)
+        val alarmServices = createAlarmServices()
         whenever(repository.readUseDeviceTimeZoneEnabled()) doReturn true
-        whenever(formattingDelegate.getFormattedDateTimeShort(any(), any(), any())) doReturn "not relevant"
         val session = Session(
             sessionId = "S1",
             dayIndex = 1,
@@ -70,70 +65,43 @@ class AlarmServicesTest {
             timeZoneOffset = ZoneOffset.of("+02:00"),
         )
 
-        alarmServices.addSessionAlarm(session, alarmTimesValues.indexOf("60"))
+        alarmServices.addSessionAlarm(session, 60)
         // AlarmServices invokes scheduleSessionAlarm() which is tested separately.
         val expectedAlarm = Alarm(
-            alarmTimeInMin = 60,
             dayIndex = 1,
-            displayTime = 1536332400000,
             sessionId = "S1",
             sessionTitle = "Title",
             startTime = Moment.ofEpochMilli(1536328800000),
-            timeText = "not relevant"
         )
         verifyInvokedOnce(repository).updateAlarm(expectedAlarm)
     }
 
     @Test
-    fun `addSessionAlarm throws exception if alarm time index exceeds `() {
-        val pendingIntentDelegate = mock<PendingIntentDelegate>()
-        val formattingDelegate = mock<FormattingDelegate>()
-        val alarmServices = createAlarmServices(pendingIntentDelegate = pendingIntentDelegate, formattingDelegate = formattingDelegate)
-        val session = Session(sessionId = "S2", dateUTC = 1536332400000L) // 2018-09-07T17:00:00+02:00
-
-        try {
-            alarmServices.addSessionAlarm(session, alarmTimesValues.size) // Out of bounds!
-            fail("Expect an IndexOutOfBoundsException to be thrown.")
-        } catch (e: IndexOutOfBoundsException) {
-            assertThat(e.message).isEqualTo("Index 3 out of bounds for length 3")
-        }
-        verifyNoInteractions(pendingIntentDelegate)
-        verifyNoInteractions(formattingDelegate)
-    }
-
-    @Test
     fun `deleteSessionAlarm discards a session alarm when the alarm was scheduled`() {
-        val formattingDelegate = mock<FormattingDelegate>()
-        val alarmServices = createAlarmServices(formattingDelegate = formattingDelegate)
+        val alarmServices = createAlarmServices()
         val alarm = Alarm(
-            alarmTimeInMin = 10,
             dayIndex = 2,
-            displayTime = 0,
             sessionId = "S3",
             sessionTitle = "Title",
             startTime = Moment.ofEpochMilli(1536332400000L),
-            timeText = "Lorem ipsum",
         )
         whenever(repository.readAlarms(any())) doReturn listOf(alarm)
         val session = Session(sessionId = "S3", hasAlarm = true)
 
         alarmServices.deleteSessionAlarm(session)
         // AlarmServices invokes discardSessionAlarm() which is tested separately.
-        verifyNoInteractions(formattingDelegate)
         verifyInvokedOnce(repository).deleteAlarmForSessionId("S3")
     }
 
     @Test
     fun `deleteSessionAlarm returns without action when no alarm was scheduled`() {
         val pendingIntentDelegate = mock<PendingIntentDelegate>()
-        val formattingDelegate = mock<FormattingDelegate>()
-        val alarmServices = createAlarmServices(pendingIntentDelegate = pendingIntentDelegate, formattingDelegate = formattingDelegate)
+        val alarmServices = createAlarmServices(pendingIntentDelegate)
         whenever(repository.readAlarms(any())) doReturn emptyList()
         val session = Session(sessionId = "S4")
 
         alarmServices.deleteSessionAlarm(session)
         verifyNoInteractions(pendingIntentDelegate)
-        verifyNoInteractions(formattingDelegate)
     }
 
     @Test
@@ -218,16 +186,13 @@ class AlarmServicesTest {
 
     private fun createAlarmServices(
         pendingIntentDelegate: PendingIntentDelegate = mock(),
-        formattingDelegate: FormattingDelegate = mock(),
         alarmManager: AlarmManager = this.alarmManager,
     ) = AlarmServices(
         context = mockContext,
         repository = repository,
         alarmManager = alarmManager,
-        alarmTimeValues = alarmTimesValues,
         logging = NoLogging,
         pendingIntentDelegate = pendingIntentDelegate,
-        formattingDelegate = formattingDelegate,
     )
 
 }

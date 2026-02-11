@@ -15,6 +15,7 @@ import android.widget.AbsListView
 import android.widget.AbsListView.MultiChoiceModeListener
 import android.widget.HeaderViewListAdapter
 import android.widget.ListView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.CallSuper
 import androidx.annotation.IdRes
@@ -32,6 +33,8 @@ import nerd.tuxmobil.fahrplan.congress.R
 import nerd.tuxmobil.fahrplan.congress.base.AbstractListFragment
 import nerd.tuxmobil.fahrplan.congress.commons.ResourceResolver
 import nerd.tuxmobil.fahrplan.congress.contract.BundleKeys
+import nerd.tuxmobil.fahrplan.congress.extensions.applyBottomPadding
+import nerd.tuxmobil.fahrplan.congress.extensions.applyHorizontalInsets
 import nerd.tuxmobil.fahrplan.congress.extensions.replaceFragment
 import nerd.tuxmobil.fahrplan.congress.extensions.requireViewByIdCompat
 import nerd.tuxmobil.fahrplan.congress.extensions.withArguments
@@ -83,6 +86,9 @@ class StarredListFragment :
      * The fragment's ListView/GridView.
      */
     private lateinit var currentListView: ListView
+    private lateinit var adapter: StarredListAdapter
+
+    private var headerView: TextView? = null
 
     private lateinit var loadingSpinnerView: View
 
@@ -104,10 +110,20 @@ class StarredListFragment :
             sidePane = it.getBoolean(BundleKeys.SIDEPANE)
         }
         requireActivity().addMenuProvider(this, this, RESUMED)
+        val activity = requireActivity()
+        val resourceResolving = ResourceResolver(activity)
+        adapter = StarredListAdapter(
+            context = activity,
+            list = emptyList(),
+            numDays = 0,
+            useDeviceTimeZone = false,
+            sessionPropertiesFormatting = SessionPropertiesFormatter(resourceResolving),
+            contentDescriptionFormatting = ContentDescriptionFormatter(resourceResolving),
+        )
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val contextThemeWrapper = ContextThemeWrapper(requireContext(), R.style.Theme_Congress_NoActionBar)
+        val contextThemeWrapper = ContextThemeWrapper(requireContext(), R.style.Theme_Congress)
         val localInflater = inflater.cloneInContext(contextThemeWrapper)
         val view: View
         val header: View
@@ -115,16 +131,22 @@ class StarredListFragment :
             view = localInflater.inflate(R.layout.fragment_favorites_list_narrow, container, false)
             currentListView = view.requireViewByIdCompat(android.R.id.list)
             header = localInflater.inflate(R.layout.starred_header, null, false)
+            headerView = header.requireViewByIdCompat(R.id.header_view)
         } else {
             view = localInflater.inflate(R.layout.fragment_favorites_list, container, false)
             currentListView = view.requireViewByIdCompat(android.R.id.list)
             header = localInflater.inflate(R.layout.header_empty, null, false)
+            headerView = null
         }
         currentListView.addHeaderView(header, null, false)
         currentListView.setHeaderDividersEnabled(false)
         currentListView.choiceMode = AbsListView.CHOICE_MODE_MULTIPLE_MODAL
         currentListView.setMultiChoiceModeListener(this)
         currentListView.setOnScrollListener(this)
+        currentListView.adapter = adapter
+
+        view.applyHorizontalInsets()
+        currentListView.applyBottomPadding()
 
         loadingSpinnerView = view.requireViewByIdCompat(R.id.loading_spinner_view)
 
@@ -139,21 +161,14 @@ class StarredListFragment :
     private fun observeViewModel() {
         viewModel.starredListParameter.observe(this) { (sessions, numDays, useDeviceTimeZone) ->
             starredList = sessions
-            val activity = requireActivity()
-            val resourceResolving = ResourceResolver(activity)
-            val adapter = StarredListAdapter(
-                context = activity,
-                list = sessions,
-                numDays = numDays,
-                useDeviceTimeZone = useDeviceTimeZone,
-                sessionPropertiesFormatting = SessionPropertiesFormatter(resourceResolving),
-                contentDescriptionFormatting = ContentDescriptionFormatter(resourceResolving),
-            )
-            currentListView.adapter = adapter
-            activity.invalidateOptionsMenu()
+            adapter.update(sessions, numDays, useDeviceTimeZone)
+            updateHeaderOrTitleText(sessions.size)
+            requireActivity().invalidateOptionsMenu()
 
             loadingSpinnerView.isVisible = false
-            jumpOverPastSessions()
+            if (!preserveScrollPosition) {
+                jumpOverPastSessions()
+            }
         }
         viewModel.shareSimple.observe(viewLifecycleOwner) { formattedSession ->
             SessionSharer.shareSimple(requireContext(), formattedSession)
@@ -164,6 +179,15 @@ class StarredListFragment :
                 Toast.makeText(context, R.string.share_error_activity_not_found, Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun updateHeaderOrTitleText(sessionsSize: Int) {
+        val headerOrTitleText = when (sessionsSize == 0) {
+            true -> getString(R.string.favorites_screen_default_title)
+            false -> resources.getQuantityString(R.plurals.favorites_screen_title, sessionsSize, sessionsSize)
+        }
+        headerView?.text = headerOrTitleText
+        requireActivity().title = headerOrTitleText
     }
 
     @MainThread
@@ -201,7 +225,7 @@ class StarredListFragment :
         super.onAttach(context)
         onSessionListClickListener = try {
             context as OnSessionListClick
-        } catch (e: ClassCastException) {
+        } catch (_: ClassCastException) {
             throw ClassCastException("$context must implement OnSessionListClick")
         }
     }
@@ -246,14 +270,17 @@ class StarredListFragment :
                 viewModel.share()
                 return true
             }
+
             R.id.menu_item_share_favorites_json -> {
                 viewModel.shareToChaosflix()
                 return true
             }
+
             R.id.menu_item_delete_all_favorites -> {
                 askToDeleteAllFavorites()
                 return true
             }
+
             android.R.id.home -> {
                 return requireActivity().navigateUp()
             }
@@ -294,6 +321,7 @@ class StarredListFragment :
                 mode.finish()
                 true
             }
+
             else -> false
         }
     }

@@ -35,10 +35,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
-import nerd.tuxmobil.fahrplan.congress.BuildConfig
-import nerd.tuxmobil.fahrplan.congress.BuildConfig.ENABLE_FOSDEM_ROOM_STATES
-import nerd.tuxmobil.fahrplan.congress.BuildConfig.FOSDEM_ROOM_STATES_PATH
-import nerd.tuxmobil.fahrplan.congress.BuildConfig.FOSDEM_ROOM_STATES_URL
+import nerd.tuxmobil.fahrplan.congress.applinks.Slug
+import nerd.tuxmobil.fahrplan.congress.commons.BuildConfigProvider
+import nerd.tuxmobil.fahrplan.congress.commons.BuildConfigProvision
 import nerd.tuxmobil.fahrplan.congress.dataconverters.cropToDayRangesExtent
 import nerd.tuxmobil.fahrplan.congress.dataconverters.sanitize
 import nerd.tuxmobil.fahrplan.congress.dataconverters.shiftRoomIndicesOfMainSchedule
@@ -57,8 +56,8 @@ import nerd.tuxmobil.fahrplan.congress.dataconverters.toSessionsAppModel
 import nerd.tuxmobil.fahrplan.congress.dataconverters.toSessionsDatabaseModel
 import nerd.tuxmobil.fahrplan.congress.dataconverters.toSessionsNetworkModel
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsRepository
-import nerd.tuxmobil.fahrplan.congress.engelsystem.EngelsystemUri
 import nerd.tuxmobil.fahrplan.congress.engelsystem.EngelsystemUriParser
+import nerd.tuxmobil.fahrplan.congress.engelsystem.EngelsystemUriParsingResult
 import nerd.tuxmobil.fahrplan.congress.exceptions.AppExceptionHandler
 import nerd.tuxmobil.fahrplan.congress.models.Alarm
 import nerd.tuxmobil.fahrplan.congress.models.ConferenceTimeFrame
@@ -73,8 +72,8 @@ import nerd.tuxmobil.fahrplan.congress.net.LoadShiftsResult
 import nerd.tuxmobil.fahrplan.congress.net.ParseResult
 import nerd.tuxmobil.fahrplan.congress.net.ParseScheduleResult
 import nerd.tuxmobil.fahrplan.congress.net.ParseShiftsResult
-import nerd.tuxmobil.fahrplan.congress.preferences.AlarmTonePreference
 import nerd.tuxmobil.fahrplan.congress.preferences.RealSharedPreferencesRepository
+import nerd.tuxmobil.fahrplan.congress.preferences.SettingsRepository
 import nerd.tuxmobil.fahrplan.congress.preferences.SharedPreferencesRepository
 import nerd.tuxmobil.fahrplan.congress.repositories.LoadScheduleState.FetchFailure
 import nerd.tuxmobil.fahrplan.congress.repositories.LoadScheduleState.FetchSuccess
@@ -88,15 +87,12 @@ import nerd.tuxmobil.fahrplan.congress.schedule.Conference
 import nerd.tuxmobil.fahrplan.congress.schedule.FahrplanViewModel
 import nerd.tuxmobil.fahrplan.congress.search.SearchRepository
 import nerd.tuxmobil.fahrplan.congress.serialization.ScheduleChanges.Companion.computeSessionsWithChangeFlags
-import nerd.tuxmobil.fahrplan.congress.utils.AlarmToneConversion
 import nerd.tuxmobil.fahrplan.congress.validation.MetaValidation.validate
 import okhttp3.OkHttpClient
 import info.metadude.android.eventfahrplan.database.models.Meta as MetaDatabaseModel
 import info.metadude.android.eventfahrplan.database.models.Session as SessionDatabaseModel
 import info.metadude.android.eventfahrplan.network.models.HttpHeader as HttpHeaderNetworkModel
 import info.metadude.android.eventfahrplan.network.models.Meta as MetaNetworkModel
-import info.metadude.kotlin.library.engelsystem.Api as EngelsystemApi
-import info.metadude.kotlin.library.roomstates.base.Api as RoomStatesApi
 import nerd.tuxmobil.fahrplan.congress.models.HttpHeader as HttpHeaderAppModel
 import nerd.tuxmobil.fahrplan.congress.models.Meta as MetaAppModel
 import nerd.tuxmobil.fahrplan.congress.models.Session as SessionAppModel
@@ -123,6 +119,7 @@ object AppRepository : SearchRepository,
 
     private val parentJobs = mutableMapOf<String, Job>()
     private lateinit var executionContext: ExecutionContext
+    private lateinit var buildConfigProvision: BuildConfigProvision
     private lateinit var databaseScope: DatabaseScope
     private lateinit var networkScope: NetworkScope
 
@@ -136,6 +133,7 @@ object AppRepository : SearchRepository,
     private lateinit var scheduleNetworkRepository: ScheduleNetworkRepository
     private lateinit var engelsystemRepository: EngelsystemRepository
     private lateinit var sharedPreferencesRepository: SharedPreferencesRepository
+    private lateinit var settingsRepository: SettingsRepository
     private lateinit var roomStatesRepository: RoomStatesRepository
     private lateinit var sessionsTransformer: SessionsTransformer
 
@@ -149,6 +147,16 @@ object AppRepository : SearchRepository,
      * works out. Only the latest emission is retained.
      */
     val loadScheduleState: Flow<LoadScheduleState> = mutableLoadScheduleState
+
+    private val mutableEngelsystemUriParsingErrorState = MutableSharedFlow<EngelsystemUriParsingResult.Error?>(
+        replay = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    /**
+     * Emits errors which occurred while parsing the URL for the Engelsystem shifts.
+     */
+    val engelsystemUriParsingErrorState: Flow<EngelsystemUriParsingResult.Error?> = mutableEngelsystemUriParsingErrorState
 
     private fun refreshMeta() {
         logging.d(LOG_TAG, "Refreshing meta ...")
@@ -364,13 +372,14 @@ object AppRepository : SearchRepository,
         refreshSearchHistorySignal
             .onStart { emit(Unit) }
             .mapLatest { readSearchHistory() }
+            .distinctUntilChanged()
             .flowOn(executionContext.database)
     }
 
     private val refreshRoomStatesSignal = MutableSharedFlow<Unit>()
 
     private fun refreshRoomStates() {
-        if (ENABLE_FOSDEM_ROOM_STATES) {
+        if (buildConfigProvision.enableFosdemRoomStates) {
             logging.d(LOG_TAG, "Refreshing room states ...")
             val requestIdentifier = "refreshRoomStates"
             parentJobs[requestIdentifier] = networkScope.launchNamed(requestIdentifier) {
@@ -386,7 +395,7 @@ object AppRepository : SearchRepository,
     val roomStates: Flow<Result<List<Room>>> by lazy {
         refreshRoomStatesSignal
             .onStart { emit(Unit) }
-            .flatMapLatest { if (ENABLE_FOSDEM_ROOM_STATES) roomStatesRepository.getRooms() else emptyFlow() }
+            .flatMapLatest { if (buildConfigProvision.enableFosdemRoomStates) roomStatesRepository.getRooms() else emptyFlow() }
             .flowOn(executionContext.network)
     }
 
@@ -414,6 +423,7 @@ object AppRepository : SearchRepository,
     fun initialize(
             context: Context,
             logging: Logging,
+            buildConfigProvision: BuildConfigProvision = BuildConfigProvider(),
             executionContext: ExecutionContext = AppExecutionContext,
             databaseScope: DatabaseScope = DatabaseScope.of(executionContext, AppExceptionHandler(logging)),
             networkScope: NetworkScope = NetworkScope.of(executionContext, AppExceptionHandler(logging)),
@@ -423,21 +433,19 @@ object AppRepository : SearchRepository,
             sessionsDatabaseRepository: SessionsDatabaseRepository = SessionsDatabaseRepository.get(context, logging),
             metaDatabaseRepository: MetaDatabaseRepository = MetaDatabaseRepository.get(context),
             scheduleNetworkRepository: ScheduleNetworkRepository = RealScheduleNetworkRepository(logging),
-            engelsystemRepository: EngelsystemRepository = SimpleEngelsystemRepository(
-                callFactory = okHttpClient,
-                api = EngelsystemApi,
-            ),
+            engelsystemRepository: EngelsystemRepository = SimpleEngelsystemRepository(okHttpClient),
             sharedPreferencesRepository: SharedPreferencesRepository = RealSharedPreferencesRepository(context),
+            settingsRepository: SettingsRepository = SettingsRepository.getInstance(context),
             roomStatesRepository: RoomStatesRepository = SimpleRoomStatesRepository(
-                url = FOSDEM_ROOM_STATES_URL,
-                path = FOSDEM_ROOM_STATES_PATH,
-                httpClient = okHttpClient,
-                api = RoomStatesApi,
+                url = buildConfigProvision.fosdemRoomStatesUrl,
+                path = buildConfigProvision.fosdemRoomStatesPath,
+                callFactory = okHttpClient,
             ),
             sessionsTransformer: SessionsTransformer = SessionsTransformer.createSessionsTransformer()
     ) {
         this.logging = logging
         this.executionContext = executionContext
+        this.buildConfigProvision = buildConfigProvision
         this.databaseScope = databaseScope
         this.networkScope = networkScope
         this.okHttpClient = okHttpClient
@@ -448,6 +456,7 @@ object AppRepository : SearchRepository,
         this.scheduleNetworkRepository = scheduleNetworkRepository
         this.engelsystemRepository = engelsystemRepository
         this.sharedPreferencesRepository = sharedPreferencesRepository
+        this.settingsRepository = settingsRepository
         this.roomStatesRepository = roomStatesRepository
         this.sessionsTransformer = sessionsTransformer
     }
@@ -521,7 +530,7 @@ object AppRepository : SearchRepository,
                               onLoadingShiftsDone: (loadShiftsResult: LoadShiftsResult) -> Unit) {
         scheduleNetworkRepository.parseSchedule(scheduleXml, httpHeader,
                 onUpdateSessions = { sessions ->
-                    val oldSessions = loadSessionsForAllDays(true).toSessionsNetworkModel()
+                    val oldSessions = loadSessionsForAllDays(includeEngelsystemShifts = false).toSessionsNetworkModel()
                     val newSessions = sessions.sanitize()
                     val scheduleChanges = computeSessionsWithChangeFlags(newSessions, oldSessions)
                     if (scheduleChanges.foundNoteworthyChanges) {
@@ -554,60 +563,70 @@ object AppRepository : SearchRepository,
      */
     private fun loadShifts(onLoadingShiftsDone: (loadShiftsResult: LoadShiftsResult) -> Unit) {
         @Suppress("ConstantConditionIf")
-        if (!BuildConfig.ENABLE_ENGELSYSTEM_SHIFTS) {
+        if (!buildConfigProvision.enableEngelsystemShifts) {
             return
         }
-        val uri = readEngelsystemShiftsUri()
-        if (uri == null) {
-            logging.d(LOG_TAG, "Engelsystem shifts URL is empty.")
-            deleteAllEngelsystemShiftsForAllDays()
-            return
-        }
-        val requestIdentifier = "loadShifts"
-        parentJobs[requestIdentifier] = networkScope.launchNamed(requestIdentifier) {
-            suspend fun notifyLoadingShiftsDone(loadShiftsResult: LoadShiftsResult) {
-                networkScope.withUiContext {
-                    onLoadingShiftsDone(loadShiftsResult)
-                }
+        when (val parseUriResult = readEngelsystemShiftsUri()) {
+            is EngelsystemUriParsingResult.Empty -> {
+                logging.d(LOG_TAG, "Engelsystem shifts URL is empty.")
+                deleteAllEngelsystemShiftsForAllDays()
             }
-            val requestHttpHeader = readEngelsystemHttpHeader()
-            engelsystemRepository.getShiftsState(
-                requestETag = requestHttpHeader.eTag,
-                requestLastModifiedAt = requestHttpHeader.lastModified,
-                baseUrl = uri.baseUrl,
-                path = uri.pathPart,
-                apiKey = uri.apiKey,
-            ).collectLatest { state ->
-                when (state) {
-                    is GetShiftsState.Success -> {
-                        updateShifts(state.shifts)
-                        updateEngelsystemHttpHeader(HttpHeaderAppModel(eTag = state.responseETag, lastModified = state.responseLastModifiedAt))
-                        notifyLoadingShiftsDone(LoadShiftsResult.Success)
-                        updateLastEngelsystemShiftsHash()
-                    }
 
-                    is GetShiftsState.Error -> {
-                        if (state.isNotModified) {
-                            logging.d(LOG_TAG, "Error: $state")
-                            loadingFailed(requestIdentifier)
-                            val loadShiftsResult = LoadShiftsResult.Success
-                            mutableLoadScheduleState.tryEmit(ParseSuccess)
-                            notifyLoadingShiftsDone(loadShiftsResult)
-                        } else {
-                            logging.e(LOG_TAG, "Error: $state")
-                            loadingFailed(requestIdentifier)
-                            val loadShiftsError = LoadShiftsResult.Error(httpStatusCode = state.httpStatusCode, exceptionMessage = state.errorMessage)
-                            mutableLoadScheduleState.tryEmit(ParseFailure(ParseShiftsResult.of(loadShiftsError)))
-                            notifyLoadingShiftsDone(loadShiftsError)
+            is EngelsystemUriParsingResult.Error -> {
+                logging.e(LOG_TAG, "Engelsystem shifts URL is invalid: ${parseUriResult.url}")
+                mutableEngelsystemUriParsingErrorState.tryEmit(parseUriResult)
+            }
+
+            is EngelsystemUriParsingResult.Parsed -> {
+                val uri = parseUriResult.uri
+                val requestIdentifier = "loadShifts"
+                parentJobs[requestIdentifier] = networkScope.launchNamed(requestIdentifier) {
+                    suspend fun notifyLoadingShiftsDone(loadShiftsResult: LoadShiftsResult) {
+                        networkScope.withUiContext {
+                            onLoadingShiftsDone(loadShiftsResult)
                         }
                     }
 
-                    is GetShiftsState.Failure -> {
-                        logging.e(LOG_TAG, "Failure: ${state.throwable.message}")
-                        state.throwable.printStackTrace()
-                        val loadShiftsException = LoadShiftsResult.Exception(state.throwable)
-                        mutableLoadScheduleState.tryEmit(ParseFailure(ParseShiftsResult.of(loadShiftsException)))
-                        notifyLoadingShiftsDone(loadShiftsException)
+                    val requestHttpHeader = readEngelsystemHttpHeader()
+                    engelsystemRepository.getShiftsState(
+                        requestETag = requestHttpHeader.eTag,
+                        requestLastModifiedAt = requestHttpHeader.lastModified,
+                        baseUrl = uri.baseUrl,
+                        path = uri.pathPart,
+                        apiKey = uri.apiKey,
+                    ).collectLatest { state ->
+                        when (state) {
+                            is GetShiftsState.Success -> {
+                                updateShifts(state.shifts)
+                                updateEngelsystemHttpHeader(HttpHeaderAppModel(eTag = state.responseETag, lastModified = state.responseLastModifiedAt))
+                                notifyLoadingShiftsDone(LoadShiftsResult.Success)
+                                updateLastEngelsystemShiftsHash()
+                            }
+
+                            is GetShiftsState.Error -> {
+                                if (state.isNotModified) {
+                                    logging.d(LOG_TAG, "Error: $state")
+                                    loadingFailed(requestIdentifier)
+                                    val loadShiftsResult = LoadShiftsResult.Success
+                                    mutableLoadScheduleState.tryEmit(ParseSuccess)
+                                    notifyLoadingShiftsDone(loadShiftsResult)
+                                } else {
+                                    logging.e(LOG_TAG, "Error: $state")
+                                    loadingFailed(requestIdentifier)
+                                    val loadShiftsError = LoadShiftsResult.Error(httpStatusCode = state.httpStatusCode, exceptionMessage = state.errorMessage)
+                                    mutableLoadScheduleState.tryEmit(ParseFailure(ParseShiftsResult.of(loadShiftsError)))
+                                    notifyLoadingShiftsDone(loadShiftsError)
+                                }
+                            }
+
+                            is GetShiftsState.Failure -> {
+                                logging.e(LOG_TAG, "Failure: ${state.throwable.message}")
+                                state.throwable.printStackTrace()
+                                val loadShiftsException = LoadShiftsResult.Exception(state.throwable)
+                                mutableLoadScheduleState.tryEmit(ParseFailure(ParseShiftsResult.of(loadShiftsException)))
+                                notifyLoadingShiftsDone(loadShiftsException)
+                            }
+                        }
                     }
                 }
             }
@@ -696,8 +715,8 @@ object AppRepository : SearchRepository,
      * The returned list might be empty.
      */
     @WorkerThread
-    private fun loadSessionsForAllDays() = loadSessionsForAllDays(true)
-        .also { logging.d(LOG_TAG, "${it.size} sessions with alarm.") }
+    fun loadSessionsForAllDays() = loadSessionsForAllDays(true)
+        .also { logging.d(LOG_TAG, "${it.size} sessions with alarm flag.") }
 
     /**
      * Load all sessions for the currently configured day from the database which have not been
@@ -749,6 +768,8 @@ object AppRepository : SearchRepository,
     private fun deleteAllEngelsystemShiftsForAllDays() {
         val toBeDeletedSessions = readEngelsystemShiftsOrderedByDateUtc()
         updateSessions(emptyList(), toBeDeletedSessions)
+        updateEngelsystemHttpHeader(HttpHeaderAppModel(eTag = "", lastModified = ""))
+        updateLastEngelsystemShiftsHash(0)
     }
 
     /**
@@ -826,6 +847,7 @@ object AppRepository : SearchRepository,
         if (alarmsDatabaseRepository.deleteAll() > 0) {
             refreshAlarms()
             refreshSelectedSession()
+            refreshSessions()
             refreshRoomStates()
             refreshUncanceledSessions()
         }
@@ -836,6 +858,7 @@ object AppRepository : SearchRepository,
         if (alarmsDatabaseRepository.deleteForSessionId(sessionId) > 0) {
             refreshAlarms()
             refreshSelectedSession()
+            refreshSessions()
             refreshRoomStates()
             refreshUncanceledSessions()
         }
@@ -848,6 +871,7 @@ object AppRepository : SearchRepository,
         if (alarmsDatabaseRepository.update(values, alarm.sessionId) != DATABASE_UPDATE_ERROR) {
             refreshAlarms()
             refreshSelectedSession()
+            refreshSessions()
             refreshRoomStates()
             refreshUncanceledSessions()
         }
@@ -862,6 +886,7 @@ object AppRepository : SearchRepository,
         val values = highlightDatabaseModel.toContentValues()
         if (highlightsDatabaseRepository.update(values, session.sessionId) != DATABASE_UPDATE_ERROR) {
             refreshStarredSessions()
+            refreshSessions()
             refreshSelectedSession()
             refreshRoomStates()
             refreshUncanceledSessions()
@@ -872,6 +897,7 @@ object AppRepository : SearchRepository,
     fun deleteHighlight(sessionId: String) {
         if (highlightsDatabaseRepository.delete(sessionId) > 0) {
             refreshStarredSessions()
+            refreshSessions()
             refreshSelectedSession()
             refreshRoomStates()
             refreshUncanceledSessions()
@@ -889,15 +915,25 @@ object AppRepository : SearchRepository,
     }
 
     private fun readSessionBySessionId(sessionId: String): SessionDatabaseModel {
-        val session = sessionsDatabaseRepository
-            .querySessionBySessionId(sessionId)
+        val session = sessionsDatabaseRepository.querySessionBySessionId(sessionId)
+        return enrichSession(session)
+    }
 
+    private fun readSessionsBySlug(slug: Slug): List<SessionDatabaseModel> {
+        val sessions = when (slug) {
+            is Slug.HubSlug -> sessionsDatabaseRepository.querySessionsBySlugInSlug(slug.value)
+            is Slug.PretalxSlug -> sessionsDatabaseRepository.querySessionsBySlugInFeedbackUrl(slug.value)
+        }
+        return sessions.map(::enrichSession)
+    }
+
+    private fun enrichSession(session: SessionDatabaseModel): SessionDatabaseModel {
         val isHighlighted = highlightsDatabaseRepository
-            .queryBySessionId(sessionId)
+            .queryBySessionId(session.sessionId)
             ?.isHighlight ?: false
 
         val hasAlarm = alarmsDatabaseRepository
-            .query(sessionId)
+            .query(session.sessionId)
             .isNotEmpty()
 
         return if (isHighlighted || hasAlarm) {
@@ -939,6 +975,23 @@ object AppRepository : SearchRepository,
         return isSet.also {
             refreshSelectedSession()
             refreshRoomStates()
+        }
+    }
+
+    fun updateSelectedSessionIdFromSlug(slug: Slug): Boolean {
+        val sessions = readSessionsBySlug(slug)
+        return when {
+            sessions.isEmpty() -> {
+                logging.e(LOG_TAG, "No sessions found for slug '$slug'.")
+                false
+            }
+
+            sessions.size > 1 -> {
+                logging.e(LOG_TAG, "Multiple sessions found for slug '$slug': $sessions")
+                false
+            }
+
+            else -> updateSelectedSessionId(sessions.first().sessionId)
         }
     }
 
@@ -1020,46 +1073,41 @@ object AppRepository : SearchRepository,
     }
 
     fun readScheduleRefreshIntervalDefaultValue() =
-        sharedPreferencesRepository.getScheduleRefreshIntervalDefaultValue()
+        settingsRepository.getScheduleRefreshIntervalDefaultValue()
 
-    fun readScheduleRefreshInterval() =
-        sharedPreferencesRepository.getScheduleRefreshInterval()
+    fun readScheduleRefreshInterval() = settingsRepository.getScheduleRefreshInterval()
 
-    fun readAlarmTimeIndex() =
-            sharedPreferencesRepository.getAlarmTimeIndex()
+    fun readAlarmTime() = settingsRepository.getAlarmTime()
 
     /**
      * Returns the alarm tone `Uri` or `null` for silent alarms to be used for notifications.
      */
-    fun readAlarmToneUri(): Uri? {
-        val alarmTone = sharedPreferencesRepository.getAlarmTone()
-        return AlarmToneConversion.getNotificationIntentUri(alarmTone, AlarmTonePreference.DEFAULT_VALUE_URI)
-    }
+    fun readAlarmToneUri(): Uri? = settingsRepository.getAlarmTone()
 
     @WorkerThread
-    override fun readUseDeviceTimeZoneEnabled() =
-        sharedPreferencesRepository.isUseDeviceTimeZoneEnabled()
+    override fun readUseDeviceTimeZoneEnabled() = settingsRepository.isUseDeviceTimeZoneEnabled()
 
-    fun readAlternativeHighlightingEnabled() =
-            sharedPreferencesRepository.isAlternativeHighlightingEnabled()
+    fun readAlternativeHighlightingEnabled() = settingsRepository.isAlternativeHighlightingEnabled()
 
-    fun readFastSwipingEnabled() =
-        sharedPreferencesRepository.isFastSwipingEnabled()
+    fun readFastSwipingEnabled() = settingsRepository.isFastSwipingEnabled()
+
+    fun readShowScheduleUpdateDialogEnabled() = settingsRepository.isShowScheduleUpdateDialogEnabled()
+
+    fun readShowOnLockscreenEnabled() = settingsRepository.isShowOnLockscreenEnabled()
 
     @WorkerThread
-    fun readAutoUpdateEnabled() =
-            sharedPreferencesRepository.isAutoUpdateEnabled()
+    fun readAutoUpdateEnabled() = settingsRepository.isAutoUpdateEnabled()
 
     fun readScheduleUrl(): String {
-        val alternateScheduleUrl = sharedPreferencesRepository.getAlternativeScheduleUrl()
+        val alternateScheduleUrl = settingsRepository.getAlternativeScheduleUrl()
         return alternateScheduleUrl.ifEmpty {
-            BuildConfig.SCHEDULE_URL
+            buildConfigProvision.scheduleUrl
         }
     }
 
-    private fun readEngelsystemShiftsUri(): EngelsystemUri? {
-        val url = sharedPreferencesRepository.getEngelsystemShiftsUrl()
-        return if (url.isEmpty()) null else EngelsystemUriParser().parseUri(url)
+    private fun readEngelsystemShiftsUri(): EngelsystemUriParsingResult {
+        val url = settingsRepository.getEngelsystemShiftsUrl()
+        return EngelsystemUriParser().parseUri(url)
     }
 
     fun readScheduleLastFetchedAt() =
@@ -1107,8 +1155,7 @@ object AppRepository : SearchRepository,
         refreshSessionsWithoutShifts()
     }
 
-    fun readInsistentAlarmsEnabled() =
-            sharedPreferencesRepository.isInsistentAlarmsEnabled()
+    fun readInsistentAlarmsEnabled() = settingsRepository.isInsistentAlarmsEnabled()
 
     private fun readSearchHistory(): List<String> {
         return sharedPreferencesRepository.getSearchHistory()

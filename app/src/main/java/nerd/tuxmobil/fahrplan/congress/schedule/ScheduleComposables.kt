@@ -23,18 +23,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
@@ -46,6 +45,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow.Companion.Ellipsis
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import nerd.tuxmobil.fahrplan.congress.R
@@ -83,8 +83,8 @@ fun RoomColumn(
             // Add spacings and sessions in the right order
             columnData.sessionData.forEachIndexed { index, sessionData ->
                 // Add spacing before session if needed
-                if (index < columnData.spacings.size && columnData.spacings[index] > 0) {
-                    Spacer(Modifier.height(columnData.spacings[index].dp))
+                if (index < columnData.spacings.size && columnData.spacings[index] > 0.dp) {
+                    Spacer(Modifier.height(columnData.spacings[index]))
                 }
 
                 SessionCard(
@@ -99,38 +99,33 @@ fun RoomColumn(
 }
 
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SessionCard(
     data: SessionCardData,
-    contextMenuTextColor: Color = LocalColorScheme.current.inverseOnSurface,
+    contextMenuTextColor: Color = LocalColorScheme.current.onSurface,
     sessionCardLayout: @Composable ColumnScope.() -> Unit,
     onClick: () -> Unit,
     onMenuItemClick: (SessionInteractionType) -> Unit,
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
     var pressPosition by remember { mutableStateOf(Offset.Zero) }
-    var cardPosition by remember { mutableStateOf(Offset.Zero) }
-    var cardWidth by remember { mutableFloatStateOf(0f) }
     val interactionSource = remember { MutableInteractionSource() }
 
     Box {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(data.cardHeight.dp)
-                .onGloballyPositioned { coordinates ->
-                    cardPosition = coordinates.positionInRoot()
-                    cardWidth = coordinates.size.width.toFloat()
+                .height(data.cardHeight)
+                .pointerInteropFilter {
+                    pressPosition = Offset(it.x, it.y)
+                    false
                 }
                 .combinedClickable(
                     interactionSource = interactionSource,
                     indication = ripple(),
                     onClick = onClick,
-                    onLongClick = {
-                        pressPosition = Offset(cardPosition.x + (cardWidth / 2), cardPosition.y)
-                        showContextMenu = true
-                    }
+                    onLongClick = { showContextMenu = true },
                 )
                 .padding(
                     start = dimensionResource(R.dimen.session_drawable_inset_start),
@@ -150,7 +145,7 @@ fun SessionCard(
             border = if (data.showBorder) {
                 BorderStroke(
                     dimensionResource(R.dimen.session_drawable_selection_stroke_width),
-                    colorResource(R.color.session_drawable_selection_stroke),
+                    EventFahrplanTheme.colorScheme.sessionCardSelectionStroke,
                 )
             } else {
                 null
@@ -158,17 +153,25 @@ fun SessionCard(
             shape = RoundedCornerShape(dimensionResource(R.dimen.session_drawable_corner_radius)),
             content = { sessionCardLayout() },
         )
-        ContextMenu(
-            expanded = showContextMenu,
-            isFavored = data.isFavored,
-            hasAlarm = data.hasAlarm,
-            shouldShowShareSubMenu = data.shouldShowShareSubMenu,
-            textColor = contextMenuTextColor,
-            cardPosition = cardPosition,
-            pressPosition = pressPosition,
-            onMenuItemClick = onMenuItemClick,
-            onCollapseRequest = { showContextMenu = false },
-        )
+
+        // We wrap ContextMenu in a container so it doesn't dynamically adjust its position based on
+        // the position of its sibling.
+        Box {
+            val menuOffset = with(LocalDensity.current) {
+                DpOffset(pressPosition.x.toDp(), pressPosition.y.toDp())
+            }
+
+            ContextMenu(
+                expanded = showContextMenu,
+                isFavored = data.isFavored,
+                hasAlarm = data.hasAlarm,
+                shouldShowShareSubMenu = data.shouldShowShareSubMenu,
+                textColor = contextMenuTextColor,
+                menuOffset = menuOffset,
+                onMenuItemClick = onMenuItemClick,
+                onCollapseRequest = { showContextMenu = false },
+            )
+        }
     }
 }
 
@@ -182,7 +185,7 @@ private fun SessionCardLayout(data: SessionCardData) {
     ) {
 
         val currentDensity = LocalDensity.current
-        val cardHeightPx = (currentDensity.density * data.cardHeight).toInt()
+        val cardHeightPx = with(currentDensity) { data.cardHeight.roundToPx() }
         val innerPaddingDp = dimensionResource(R.dimen.session_drawable_inner_padding)
         val innerPaddingPx = (currentDensity.density * innerPaddingDp.value).toInt()
 
@@ -261,29 +264,18 @@ private fun SessionCardLayout(data: SessionCardData) {
                 }
             }.firstOrNull()?.measure(constraints)
 
-            // Calculate the total height of all placeables
-            var placeablesHeight = 0
-            if (titlePlaceable != null) {
-                placeablesHeight += titlePlaceable.height
-            }
-            if (subtitlePlaceable != null) {
-                placeablesHeight += subtitlePlaceable.height
-            }
-            if (speakerNamesAndLanguagesPlaceable != null) {
-                placeablesHeight += speakerNamesAndLanguagesPlaceable.height
-            }
-            if (trackNamePlaceable != null) {
-                placeablesHeight += trackNamePlaceable.height
-            }
-
-            layout(constraints.maxWidth, placeablesHeight) {
+            layout(constraints.maxWidth, cardHeightPx) {
                 var yPosition = 0
                 yPosition += innerPaddingPx
 
                 // Title
                 var showTitle = true
                 titlePlaceable?.let {
-                    showTitle = yPosition + it.height + innerPaddingPx < cardHeightPx
+                    val fitsWithBottomPadding = yPosition + it.height + innerPaddingPx < cardHeightPx
+                    val fitsWithoutBottomPadding = yPosition + it.height <= cardHeightPx
+                    // Always prioritize showing the title; relax the bottom whitespace
+                    // requirement for very short cards as long as the title fits vertically.
+                    showTitle = fitsWithBottomPadding || fitsWithoutBottomPadding
                     if (showTitle) {
                         it.placeRelative(0, yPosition)
                         yPosition += it.height
@@ -342,7 +334,7 @@ private fun Title(
             fontFamily = FontFamily(Font(R.font.roboto_condensed_medium)),
             fontSize = dimensionResource(R.dimen.session_drawable_title).toTextUnit(),
             color = textColor,
-            maxLines = 2,
+            maxLines = property.maxLines,
             overflow = Ellipsis,
         )
     }
@@ -435,7 +427,7 @@ private fun TrackName(
         Box(
             modifier = modifier
                 .background(
-                    color = colorResource(R.color.session_item_track_name_background),
+                    color = EventFahrplanTheme.colorScheme.sessionCardTrackNameBackground,
                     shape = RoundedCornerShape(12.dp),
                 )
                 .defaultMinSize(minHeight = 20.dp)
@@ -450,7 +442,7 @@ private fun TrackName(
                 text = property.value,
                 fontFamily = FontFamily(Font(R.font.roboto_condensed_medium)),
                 fontSize = dimensionResource(R.dimen.session_drawable_track).toTextUnit(),
-                color = colorResource(R.color.session_item_track_name_text),
+                color = EventFahrplanTheme.colorScheme.sessionCardTrackNameText,
                 maxLines = 1,
                 overflow = Ellipsis,
             )
@@ -465,7 +457,7 @@ private fun VideoRecordingIcon(
 ) {
     IconDecorative(
         modifier = modifier.size(dimensionResource(R.dimen.session_drawable_icon_size)),
-        icon = R.drawable.ic_novideo,
+        icon = R.drawable.ic_video_recording_unavailable,
         contentDescription = property.contentDescription,
         tint = Color.Unspecified,
     )
@@ -480,7 +472,7 @@ private fun AlarmIcon(
             .size(dimensionResource(R.dimen.session_drawable_icon_size))
             .padding(dimensionResource(R.dimen.session_drawable_icon_padding)),
         icon = R.drawable.ic_bell_on_session,
-        tint = colorResource(R.color.session_item_alarm_icon),
+        tint = EventFahrplanTheme.colorScheme.sessionCardBellIcon,
         contentDescription = stringResource(R.string.session_item_has_alarm_content_description),
     )
 }
@@ -493,32 +485,11 @@ private fun ContextMenu(
     hasAlarm: Boolean,
     shouldShowShareSubMenu: Boolean,
     textColor: Color,
-    cardPosition: Offset,
-    pressPosition: Offset,
+    menuOffset: DpOffset,
     onMenuItemClick: (SessionInteractionType) -> Unit,
     onCollapseRequest: () -> Unit,
 ) {
     var showShareSubMenu by remember { mutableStateOf(false) }
-
-    // The UI stack above the schedule content includes:
-    // 1. System status bar (~24dp)
-    // 2. App toolbar (~56dp)
-    // 3. Progress bar (variable) or horizontal scrolling line
-    // 4. Room names header
-    val systemUiOffset = 132.dp // Combined height of all UI elements above schedule
-
-    // Times layout column width
-    val timeColumnWidth = dimensionResource(R.dimen.schedule_time_column_layout_width)
-
-    val density = LocalDensity.current
-    val relativeX = with(density) { pressPosition.x.toDp() }
-    val relativeY = with(density) { pressPosition.y.toDp() }
-    val cardPositionX = with(density) { cardPosition.x.toDp() }
-    val cardPositionY = with(density) { cardPosition.y.toDp() }
-
-    val menuXOffset = cardPositionX + relativeX - timeColumnWidth
-    val menuYOffset = cardPositionY + relativeY - systemUiOffset
-    val menuOffset = DpOffset(menuXOffset, menuYOffset)
 
     if (expanded && !showShareSubMenu) {
         DropdownMenu(
@@ -593,14 +564,14 @@ private fun ContextMenu(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 text = stringResource(R.string.menu_item_title_share_session),
-                color = colorResource(R.color.colorAccent),
+                color = EventFahrplanTheme.colorScheme.primary,
             )
             DividerHorizontal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
                 thickness = 1.dp,
-                color = colorResource(R.color.colorAccent),
+                color = EventFahrplanTheme.colorScheme.primary,
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.menu_item_title_share_session_text), color = textColor) },
@@ -635,31 +606,33 @@ private fun RoomColumnPreview() {
 @Composable
 private fun createRoomColumnData() = RoomColumnData(
     sessionData = listOf(
-        createSessionCardData(height = 50, isFavored = false, hasAlarm = true, isRecorded = true),
-        createSessionCardData(height = 100, isFavored = true, hasAlarm = true, isRecorded = false),
-        createSessionCardData(height = 70, isFavored = false, hasAlarm = true, isRecorded = true),
-        createSessionCardData(height = 200, isFavored = true, hasAlarm = false, isRecorded = true),
-        createSessionCardData(height = 35, isFavored = false, hasAlarm = true, isRecorded = false),
+        createSessionCardData(height = 50.dp, isFavored = false, hasAlarm = true, isRecorded = true),
+        createSessionCardData(height = 100.dp, isFavored = true, hasAlarm = true, isRecorded = false),
+        createSessionCardData(height = 70.dp, isFavored = false, hasAlarm = true, isRecorded = true),
+        createSessionCardData(height = 200.dp, isFavored = true, hasAlarm = false, isRecorded = true),
+        createSessionCardData(height = 35.dp, isFavored = false, hasAlarm = true, isRecorded = false),
     ),
-    spacings = listOf(20, 80, 0, 8, 0),
+    spacings = listOf(20.dp, 80.dp, 0.dp, 8.dp, 0.dp),
 )
 
-@Preview()
+@Preview
 @Composable
 private fun SessionCardPreview() {
-    val data = createSessionCardData(height = 200, isFavored = true, hasAlarm = true, isRecorded = false)
-    SessionCard(
-        data = data,
-        sessionCardLayout = { SessionCardLayout(data) },
-        contextMenuTextColor = Color.White,
-        onClick = {},
-        onMenuItemClick = {},
-    )
+    val data = createSessionCardData(height = 200.dp, isFavored = true, hasAlarm = true, isRecorded = false)
+    EventFahrplanTheme {
+        SessionCard(
+            data = data,
+            sessionCardLayout = { SessionCardLayout(data) },
+            contextMenuTextColor = Color.White,
+            onClick = {},
+            onMenuItemClick = {},
+        )
+    }
 }
 
 @Composable
 private fun createSessionCardData(
-    height: Int = 100,
+    height: Dp = 100.dp,
     isFavored: Boolean = false,
     hasAlarm: Boolean = false,
     isRecorded: Boolean = true,
@@ -692,7 +665,7 @@ private fun SessionCardPreview01() {
         speakerNames = stringResource(R.string.placeholder_session_speakers),
         languages = stringResource(R.string.placeholder_session_language),
         trackName = stringResource(R.string.placeholder_session_track),
-        cardHeight = 120,
+        cardHeight = 120.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -709,7 +682,7 @@ private fun SessionCardPreview02() {
         speakerNames = stringResource(R.string.placeholder_session_speakers),
         languages = stringResource(R.string.placeholder_session_language),
         trackName = stringResource(R.string.placeholder_session_track),
-        cardHeight = 90,
+        cardHeight = 90.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -726,7 +699,7 @@ private fun SessionCardPreview03() {
         speakerNames = "",
         languages = "",
         trackName = stringResource(R.string.placeholder_session_track),
-        cardHeight = 90,
+        cardHeight = 90.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -743,7 +716,7 @@ private fun SessionCardPreview04() {
         speakerNames = "",
         languages = "",
         trackName = stringResource(R.string.placeholder_session_track),
-        cardHeight = 70,
+        cardHeight = 70.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -760,7 +733,7 @@ private fun SessionCardPreview05() {
         speakerNames = "",
         languages = "",
         trackName = stringResource(R.string.placeholder_session_track),
-        cardHeight = 55,
+        cardHeight = 55.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -777,7 +750,7 @@ private fun SessionCardPreview06() {
         speakerNames = "",
         languages = "",
         trackName = stringResource(R.string.placeholder_session_track),
-        cardHeight = 50,
+        cardHeight = 50.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -794,7 +767,7 @@ private fun SessionCardPreview07() {
         speakerNames = "",
         languages = "",
         trackName = "",
-        cardHeight = 60,
+        cardHeight = 60.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -811,7 +784,7 @@ private fun SessionCardPreview08() {
         speakerNames = "",
         languages = "",
         trackName = "",
-        cardHeight = 95,
+        cardHeight = 95.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -828,7 +801,7 @@ private fun SessionCardPreview09() {
         speakerNames = "Stephen A. Ridley, Ernest Ridley, Conan Ridley, Bridget Ridley, Frank Ridley, Barbara Ridley",
         languages = stringResource(R.string.placeholder_session_language),
         trackName = "",
-        cardHeight = 110,
+        cardHeight = 110.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -845,7 +818,7 @@ private fun SessionCardPreview10() {
         speakerNames = stringResource(R.string.placeholder_session_speakers),
         languages = stringResource(R.string.placeholder_session_language),
         trackName = "Very looooooooooooooooooooooooooooooooooooooooooooooong track name",
-        cardHeight = 160,
+        cardHeight = 160.dp,
         recordingOptOut = true,
         isFavored = true,
         hasAlarm = true,
@@ -861,7 +834,7 @@ private fun createSessionCard(
     speakerNames: String = "",
     languages: String = "",
     trackName: String = "",
-    cardHeight: Int,
+    cardHeight: Dp,
     recordingOptOut: Boolean = false,
     isFavored: Boolean = false,
     hasAlarm: Boolean = false,
@@ -870,27 +843,29 @@ private fun createSessionCard(
     backgroundColor: Int = R.color.track_background_default,
     textColor: Int = R.color.text_primary,
 ) {
-    SessionCard(
-        SessionCardData(
-            sessionId = stringResource(R.string.placeholder_session_id),
-            title = SessionProperty(title, ""),
-            subtitle = SessionProperty(subtitle, ""),
-            speakerNames = SessionProperty(speakerNames, ""),
-            languages = SessionProperty(languages, ""),
-            trackName = SessionProperty(trackName, ""),
-            recordingOptOut = SessionProperty(recordingOptOut, ""),
-            stateContentDescription = "",
-            innerHorizontalPadding = 8f,
-            innerVerticalPadding = 4f,
-            cardHeight = cardHeight,
-            isFavored = isFavored,
-            hasAlarm = hasAlarm,
-            showBorder = showBorder,
-            shouldShowShareSubMenu = shouldShowShareSubMenu,
-            backgroundColor = backgroundColor,
-            textColor = textColor,
+    EventFahrplanTheme {
+        SessionCard(
+            SessionCardData(
+                sessionId = stringResource(R.string.placeholder_session_id),
+                title = SessionProperty(title, ""),
+                subtitle = SessionProperty(subtitle, ""),
+                speakerNames = SessionProperty(speakerNames, ""),
+                languages = SessionProperty(languages, ""),
+                trackName = SessionProperty(trackName, ""),
+                recordingOptOut = SessionProperty(recordingOptOut, ""),
+                stateContentDescription = "",
+                innerHorizontalPadding = 8f,
+                innerVerticalPadding = 4f,
+                cardHeight = cardHeight,
+                isFavored = isFavored,
+                hasAlarm = hasAlarm,
+                showBorder = showBorder,
+                shouldShowShareSubMenu = shouldShowShareSubMenu,
+                backgroundColor = backgroundColor,
+                textColor = textColor,
+            )
         )
-    )
+    }
 }
 
 @Composable

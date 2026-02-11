@@ -16,20 +16,12 @@ object BundleKeys {
     const val SESSION_ALARM_NOTIFICATION_ID =
         "nerd.tuxmobil.fahrplan.congress.SESSION_ALARM_NOTIFICATION_ID"
 
+    // Schedule update notification
+    const val SCHEDULE_UPDATE_NOTIFICATION =
+        "nerd.tuxmobil.fahrplan.congress.SCHEDULE_UPDATE_NOTIFICATION"
+
     // Side pane
     const val SIDEPANE = "nerd.tuxmobil.fahrplan.congress.SIDEPANE"
-
-    // Changes dialog
-    const val CHANGES_DLG_NUM_CHANGED =
-        "nerd.tuxmobil.fahrplan.congress.ChangesDialog.NUM_CHANGES"
-    const val CHANGES_DLG_NUM_NEW =
-        "nerd.tuxmobil.fahrplan.congress.ChangesDialog.NUM_NEW"
-    const val CHANGES_DLG_NUM_CANCELLED =
-        "nerd.tuxmobil.fahrplan.congress.ChangesDialog.NUM_CANCELLED"
-    const val CHANGES_DLG_NUM_MARKED =
-        "nerd.tuxmobil.fahrplan.congress.ChangesDialog.NUM_MARKED"
-    const val CHANGES_DLG_VERSION =
-        "nerd.tuxmobil.fahrplan.congress.ChangesDialog.VERSION"
 
     // Settings
     const val SCHEDULE_URL_UPDATED =
@@ -41,4 +33,6 @@ object BundleKeys {
     const val USE_DEVICE_TIME_ZONE_UPDATED =
         "nerd.tuxmobil.fahrplan.congress.Prefs.USE_DEVICE_TIME_ZONE_UPDATED"
 
+    const val SHOW_ON_LOCKSCREEN_UPDATED =
+        "nerd.tuxmobil.fahrplan.congress.Prefs.SHOW_ON_LOCKSCREEN_UPDATED"
 }

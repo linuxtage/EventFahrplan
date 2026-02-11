@@ -16,12 +16,12 @@ apply from: "../gradle/sonarqube.gradle"
 android {
     namespace "nerd.tuxmobil.fahrplan.congress"
 
-    compileSdk Android.compileSdkVersion
+    compileSdk = Android.compileSdkVersion
     buildToolsVersion = Android.buildToolsVersion
 
     defaultConfig {
-        versionCode 1700025
-        versionName "1.8.25"
+        versionCode 1700026
+        versionName "1.8.26"
         minSdk Android.minSdkVersion
         targetSdk Android.targetSdkVersion
         base.archivesName = "Fahrplan-$versionName"
@@ -95,7 +95,7 @@ android {
             versionName "${defaultConfig.versionName}-glt-Edition"
             buildConfigField "String", "GOOGLE_PLAY_URL", '"https://play.google.com/store/apps/details?id=at.linuxtage.Eventfahrplan"'
             buildConfigField "String", "F_DROID_URL", '"https://f-droid.org/packages/at.linuxtage.Eventfahrplan"'
-            buildConfigField "String", "SCHEDULE_URL", '"https://pretalx.linuxtage.at/glt25/schedule/export/schedule.xml"'
+            buildConfigField "String", "SCHEDULE_URL", '"https://pretalx.linuxtage.at/glt26/schedule/export/schedule.xml"'
             buildConfigField "String", "EVENT_URL", '""'
             buildConfigField "String", "EVENT_WEBSITE_URL", '"https://www.linuxtage.at"'
             buildConfigField "String", "EVENT_POSTAL_ADDRESS", '"Inffeldgasse 25d, 8010 Graz"'
@@ -108,9 +108,9 @@ android {
             buildConfigField "boolean", "ENABLE_CHAOSFLIX_EXPORT", "true"
             buildConfigField "boolean", "ENABLE_ENGELSYSTEM_SHIFTS", "false"
             resValue("string", "preference_hint_engelsystem_json_export_url", '"https://engel.linuxtage.at/shifts-json-export?key=YOUR_KEY"')
-            buildConfigField "String", "SOCIAL_MEDIA_HASHTAGS_HANDLES", '"#glt25 #glt @linuxtage @gltlive"'
-            buildConfigField "String", "TRACE_DROID_EMAIL_ADDRESS", '"glt25@linuxtage.at"'
-            buildConfigField "String", "SCHEDULE_FEEDBACK_URL", '"https://pretalx.linuxtage.at/glt25/talk/%s/feedback/"' //TODO change to NN
+            buildConfigField "String", "SOCIAL_MEDIA_HASHTAGS_HANDLES", '"#glt26 #glt @linuxtage @gltlive"'
+            buildConfigField "String", "TRACE_DROID_EMAIL_ADDRESS", '"glt26@linuxtage.at"'
+            buildConfigField "String", "SCHEDULE_FEEDBACK_URL", '"https://pretalx.linuxtage.at/glt26/talk/%s/feedback/"' //TODO change to NN
 
         }
     }
@@ -197,13 +197,16 @@ dependencies {
     implementation Libs.kotlinCoroutinesAndroid
     implementation Libs.kotlinCoroutinesCore
     implementation Libs.lifecycleViewModel
+    implementation Libs.lifecycleViewModelCompose
     implementation Libs.markdownRender
     implementation Libs.material
+    implementation Libs.materialIconsCore
     implementation Libs.moshi
     ksp Libs.moshiCodeGen
+    implementation Libs.navigation
     implementation Libs.okhttp
+    implementation Libs.okhttpZstd
     implementation Libs.okhttpLoggingInterceptor
-    implementation Libs.preference
     implementation Libs.roomStates
     implementation Libs.snackengagePlayrate
     implementation Libs.tracedroid

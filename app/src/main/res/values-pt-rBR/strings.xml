@@ -23,7 +23,7 @@
     <string name="share_as_json">Compartilhar como JSON (para Chaosflix)</string>
     <!-- AlertDialog -->
     <string name="OK">Confirmar</string>
-    <!-- CertificateErrorFragment -->
+    <!-- Certificate error -->
     <string name="certificate_error_message">        Falha ao estabelecer conexão segura.\n
         (<xliff:g example="Unknown Error" id="error">%s</xliff:g>)
     </string>
@@ -36,7 +36,6 @@
     <string name="dlg_err_failed_connect_failure">Falha desconhecida de conexão</string>
     <string name="dlg_err_failed_not_found">A URL do cronograma é inválida</string>
     <string name="dlg_err_failed_parse_failure">Não foi possível processar a resposta</string>
-    <string name="dlg_err_failed_ssl_failure">Falha de SSL</string>
     <string name="dlg_err_failed_http_cleartext_not_permitted">HTTP não é permitido. Por favor use HTTPS.</string>
     <string name="dlg_err_schedule_data">Erro nos dados do cronograma</string>
     <string name="dlg_err_schedule_data_empty">        Nada para exibir. O cronograma com a versão \"<xliff:g example="0.99" id="version">%s</xliff:g>\"
@@ -45,34 +44,12 @@
     <string name="dlg_err_schedule_data_empty_without_version">        Nada para exibir. O cronograma não contém nenhuma sessão.
     </string>
     <string name="uptodate">O cronograma está atualizado.</string>
-    <!-- Schedule changes dialog -->
-    <string name="schedule_changes_dialog_title">Atualização do cronograma</string>
-    <string name="schedule_changes_dialog_updated_to_text">O cronograma foi atualizado para\u0020</string>
-    <string name="schedule_changes_dialog_changed_new_cancelled_text">. Há alterações em <xliff:g example="3 sessions" id="num_changes">%1$s</xliff:g> <xliff:g example="2 are" id="num_new">%2$s</xliff:g> <xliff:g example="new" id="phrase_new">%3$s</xliff:g> <xliff:g example="1 is" id="num_canceled">%4$s</xliff:g> <xliff:g example="cancelled" id="phrase_cancelled">%5$s</xliff:g>.</string>
-    <string name="schedule_changes_dialog_affected_text">As alterações afetaram <xliff:g example="2" id="num_marked">%1$d</xliff:g> de suas sessões favoritas.</string>
-    <plurals name="schedule_changes_dialog_phrase_new">
-        <item quantity="one">novo</item>
-        <item quantity="other">novos</item>
-    </plurals>
-    <plurals name="schedule_changes_dialog_phrase_cancelled">
-        <item quantity="one">cancelado</item>
-        <item quantity="other">cancelados</item>
-    </plurals>
-    <plurals name="schedule_changes_dialog_number_of_sessions">
-        <item quantity="one"><xliff:g example="1" id="count">%d</xliff:g> sessão</item>
-        <item quantity="other"><xliff:g example="9" id="count">%d</xliff:g> sessões</item>
-    </plurals>
-    <plurals name="schedule_changes_dialog_being">
-        <item quantity="one"><xliff:g example="1" id="count">%d</xliff:g> é</item>
-        <item quantity="other"><xliff:g example="9" id="count">%d</xliff:g> são</item>
-    </plurals>
-    <string name="schedule_changes_dialog_browse">Explorar</string>
-    <string name="schedule_changes_dialog_later">Mais tarde</string>
     <string name="navigate_back_content_description">Voltar</string>
     <string name="progress_loading_data">Obter o cronograma &#8230;</string>
     <string name="progress_processing_data">Processando o cronograma &#8230;</string>
     <string name="day">Dia</string>
     <string name="fahrplan">Cronograma</string>
+    <string name="schedule_generated_by">Cronograma gerado por: <xliff:g example="pretalx" id="name">%1$s</xliff:g>, <xliff:g example="2024.1.0" id="version">%2$s</xliff:g></string>
     <string name="schedule_no_schedule_data_title">Não há programação para exibir</string>
     <string name="schedule_no_schedule_data_subtitle">Por favor, volte mais tarde</string>
     <string name="appVersion">Versão do Aplicativo <xliff:g example="1.40.2" id="appVersion">%s</xliff:g></string>
@@ -106,15 +83,22 @@
     <string name="favorites_no_favorites_title">Não há sessões favoritas</string>
     <string name="favorites_no_favorites_subtitle">Toque na estrela na barra de menu para definir um favorito</string>
     <string name="schedule_changes">Alterações no cronograma</string>
+    <!-- Schedule changes statistic -->
+    <string name="schedule_changes_statistic_title">Atualização do cronograma</string>
+    <string name="schedule_changes_statistic_browse">Explorar</string>
+    <string name="schedule_changes_statistic_later">Mais tarde</string>
     <string name="general_settings">Geral</string>
-    <string name="starred_sessions">Favoritos</string>
+    <string name="favorites_screen_default_title">Favoritos</string>
     <string name="choose_to_delete">Selecione as sessões</string>
-    <string name="day_separator">Dia <xliff:g example="2" id="day_of_congress">%1$d</xliff:g> - <xliff:g example="29.12.2014" id="date_of_congress_day">%2$s</xliff:g></string>
+    <string name="day_separator">Dia <xliff:g example="2" id="day_of_congress">%1$d</xliff:g> - <xliff:g example="12/29/14" id="date_of_congress_day">%2$s</xliff:g></string>
+    <string name="day_separator_content_description">Dia <xliff:g example="2" id="day_of_congress">%1$d</xliff:g>, <xliff:g example="December 29, 2014" id="date_of_congress_day">%2$s</xliff:g></string>
     <string name="dlg_delete_all_favorites">Apagar todos os favoritos?</string>
     <string name="dlg_delete_all_favorites_delete_all">Apagar tudo</string>
     <string name="share_error_activity_not_found">Nenhum aplicativo adequado instalado.</string>
     <!-- Build information -->
     <string name="build_info_time">Tempo de build: <xliff:g example="2015-12-27T13:42Z" id="build_time">%s</xliff:g>
+    </string>
+    <string name="modified_at">        Hora da modificação: <xliff:g example="2015-12-26T23:24Z" id="modification_time">%s</xliff:g>
     </string>
     <string name="build_info_version_code">Versão do código: <xliff:g example="42" id="version_code">%s</xliff:g>
     </string>
