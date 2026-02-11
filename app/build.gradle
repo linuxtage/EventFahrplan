@@ -93,7 +93,7 @@ android {
             dimension defaultDimension
             applicationId "at.linuxtage.Eventfahrplan"
             versionName "${defaultConfig.versionName}-glt-Edition"
-            buildConfigField "String", "GOOGLE_PLAY_URL", '"https://play.google.com/store/apps/details?id=at.linuxtage.companion"'
+            buildConfigField "String", "GOOGLE_PLAY_URL", '"https://play.google.com/store/apps/details?id=at.linuxtage.Eventfahrplan"'
             buildConfigField "String", "F_DROID_URL", '"https://f-droid.org/packages/at.linuxtage.companion/"'
             buildConfigField "String", "SCHEDULE_URL", '"https://pretalx.linuxtage.at/glt26/schedule/export/schedule.xml"'
             buildConfigField "String", "EVENT_URL", '""'
