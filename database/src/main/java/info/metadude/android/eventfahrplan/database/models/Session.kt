@@ -8,7 +8,6 @@ import info.metadude.android.eventfahrplan.commons.temporal.Duration
 data class Session(
 
         val sessionId: String,
-        val sessionGuid: String? = null,
         val abstractt: String = "",
         val dayIndex: Int = 0,          // XML values start with 1
         val dateText: String = "",

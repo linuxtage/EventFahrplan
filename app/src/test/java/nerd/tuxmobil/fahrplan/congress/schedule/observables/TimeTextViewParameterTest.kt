@@ -148,7 +148,6 @@ class TimeTextViewParameterTest {
         startTime = Duration.ofMinutes(moment.minuteOfDay),
         duration = duration,
         roomName = "Main hall",
-        timeZoneOffset = ZoneOffset.of("+00:00"), //GMT
     )
 
 }

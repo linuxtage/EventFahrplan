@@ -3,7 +3,6 @@ package nerd.tuxmobil.fahrplan.congress.navigation
 import com.google.common.truth.Truth.assertThat
 import nerd.tuxmobil.fahrplan.congress.models.Room
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments.of
 import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
@@ -26,7 +25,7 @@ class C3navIsSupportedTest {
             convertedName: String,
             isSupported: Boolean
         ) =
-            of(baseUrl, room, convertedName, isSupported)
+            arrayOf(baseUrl, room, convertedName, isSupported)
 
         @JvmStatic
         fun data() = listOf(

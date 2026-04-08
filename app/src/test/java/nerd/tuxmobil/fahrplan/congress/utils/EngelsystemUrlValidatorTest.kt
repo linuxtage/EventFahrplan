@@ -2,7 +2,6 @@ package nerd.tuxmobil.fahrplan.congress.utils
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments.of
 import org.junit.jupiter.params.provider.MethodSource
 
 class EngelsystemUrlValidatorTest {
@@ -10,7 +9,7 @@ class EngelsystemUrlValidatorTest {
     companion object {
 
         private fun scenarioOf(url: String, isValid: Boolean) =
-                of(url, isValid)
+                arrayOf(url, isValid)
 
         @JvmStatic
         fun data() = listOf(

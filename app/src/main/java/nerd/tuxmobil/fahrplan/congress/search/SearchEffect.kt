@@ -1,6 +1,6 @@
 package nerd.tuxmobil.fahrplan.congress.search
 
-sealed interface SearchEffect {
+interface SearchEffect {
     data object NavigateBack : SearchEffect
     data class NavigateToSession(val sessionId: String) : SearchEffect
 }

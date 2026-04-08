@@ -16,16 +16,6 @@ import nerd.tuxmobil.fahrplan.congress.TestExecutionContext
 import nerd.tuxmobil.fahrplan.congress.alarms.AlarmServices
 import nerd.tuxmobil.fahrplan.congress.commons.BuildConfigProvision
 import nerd.tuxmobil.fahrplan.congress.commons.ExternalNavigation
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.AddToCalendar
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.CloseDetails
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.NavigateToRoom
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.OpenFeedback
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.RequestPostNotificationsPermission
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.RequestScheduleExactAlarmsPermission
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShareJson
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShareSimple
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShowAlarmTimePicker
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShowNotificationsDisabledError
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsParameter.SessionDetails
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsProperty.MarkupLanguage.Markdown
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsState.Loading
@@ -118,64 +108,56 @@ class SessionDetailsViewModelTest {
     }
 
     @Test
-    fun `openFeedback() emits OpenFeedback effect`() = runTest {
+    fun `openFeedback() posts to openFeedback`() = runTest {
         val repository = createRepository()
         val fakeFeedbackUrlComposition = mock<FeedbackUrlComposition> {
             on { getFeedbackUrl(any()) } doReturn SAMPLE_FEEDBACK_URL
         }
         val viewModel = createViewModel(repository, feedbackUrlComposition = fakeFeedbackUrlComposition)
         viewModel.openFeedback()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isInstanceOf(OpenFeedback::class.java)
-            assertThat((effect as OpenFeedback).uri).isEqualTo(SAMPLE_FEEDBACK_URL.toUri())
+        viewModel.openFeedBack.test {
+            assertThat(awaitItem()).isEqualTo(SAMPLE_FEEDBACK_URL.toUri())
         }
         verifyInvokedOnce(repository).loadSelectedSession()
     }
 
     @Test
-    fun `share() emits ShareSimple effect with formatted session`() = runTest {
+    fun `share() posts to shareSimple what simpleSessionFormat returns`() = runTest {
         val repository = createRepository()
         val fakeSessionFormat = mock<SimpleSessionFormat> {
             on { format(any(), anyOrNull(), any()) } doReturn "An example session"
         }
         val viewModel = createViewModel(repository, simpleSessionFormat = fakeSessionFormat)
         viewModel.share()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isInstanceOf(ShareSimple::class.java)
-            assertThat((effect as ShareSimple).formattedSession).isEqualTo("An example session")
+        viewModel.shareSimple.test {
+            assertThat(awaitItem()).isEqualTo("An example session")
         }
         verifyInvokedOnce(repository).loadSelectedSession()
         verifyInvokedOnce(repository).readMeta()
     }
 
     @Test
-    fun `shareToChaosflix() emits ShareJson effect with formatted session`() = runTest {
+    fun `shareToChaosflix() posts to shareJson what jsonSessionFormat returns`() = runTest {
         val repository = createRepository()
         val fakeSessionFormat = mock<JsonSessionFormat> {
             on { format(any<Session>()) } doReturn """{ "session" : "example" }"""
         }
         val viewModel = createViewModel(repository, jsonSessionFormat = fakeSessionFormat)
         viewModel.shareToChaosflix()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isInstanceOf(ShareJson::class.java)
-            assertThat((effect as ShareJson).formattedSession).isEqualTo("""{ "session" : "example" }""")
+        viewModel.shareJson.test {
+            assertThat(awaitItem()).isEqualTo("""{ "session" : "example" }""")
         }
         verifyInvokedOnce(repository).loadSelectedSession()
     }
 
     @Test
-    fun `addToCalendar() emits AddToCalendar effect`() = runTest {
+    fun `addToCalendar() posts to addToCalendar`() = runTest {
         val repository = createRepository(selectedSession = Session("S2"))
         val viewModel = createViewModel(repository)
         viewModel.addToCalendar()
         verifyInvokedOnce(repository).loadSelectedSession()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isInstanceOf(AddToCalendar::class.java)
-            assertThat((effect as AddToCalendar).session).isEqualTo(Session("S2"))
+        viewModel.addToCalendar.test {
+            assertThat(awaitItem()).isEqualTo(Session("S2"))
         }
     }
 
@@ -211,7 +193,7 @@ class SessionDetailsViewModelTest {
     }
 
     @Test
-    fun `addAlarmWithChecks() emits ShowAlarmTimePicker effect`() = runTest {
+    fun `addAlarmWithChecks() posts to showAlarmTimePicker`() = runTest {
         val notificationHelper = mock<NotificationHelper> {
             on { notificationsEnabled } doReturn true
         }
@@ -225,16 +207,15 @@ class SessionDetailsViewModelTest {
             alarmServices = alarmServices,
         )
         viewModel.addAlarmWithChecks()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isEqualTo(ShowAlarmTimePicker)
+        viewModel.showAlarmTimePicker.test {
+            assertThat(awaitItem()).isEqualTo(Unit)
         }
         verifyInvokedOnce(notificationHelper).notificationsEnabled
         verifyInvokedOnce(alarmServices).canScheduleExactAlarms
     }
 
     @Test
-    fun `addAlarmWithChecks() emits RequestScheduleExactAlarmsPermission effect`() = runTest {
+    fun `addAlarmWithChecks() posts to requestScheduleExactAlarmsPermission`() = runTest {
         val notificationHelper = mock<NotificationHelper> {
             on { notificationsEnabled } doReturn true
         }
@@ -249,16 +230,15 @@ class SessionDetailsViewModelTest {
             runsAtLeastOnAndroidTiramisu = true, // not relevant
         )
         viewModel.addAlarmWithChecks()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isEqualTo(RequestScheduleExactAlarmsPermission)
+        viewModel.requestScheduleExactAlarmsPermission.test {
+            assertThat(awaitItem()).isEqualTo(Unit)
         }
         verifyInvokedOnce(notificationHelper).notificationsEnabled
         verifyInvokedOnce(alarmServices).canScheduleExactAlarms
     }
 
     @Test
-    fun `addAlarmWithChecks() emits RequestPostNotificationsPermission effect as of Android 13`() = runTest {
+    fun `addAlarmWithChecks() posts to requestPostNotificationsPermission as of Android 13`() = runTest {
         val notificationHelper = mock<NotificationHelper> {
             on { notificationsEnabled } doReturn false
         }
@@ -269,15 +249,14 @@ class SessionDetailsViewModelTest {
             runsAtLeastOnAndroidTiramisu = true,
         )
         viewModel.addAlarmWithChecks()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isEqualTo(RequestPostNotificationsPermission)
+        viewModel.requestPostNotificationsPermission.test {
+            assertThat(awaitItem()).isEqualTo(Unit)
         }
         verifyInvokedOnce(notificationHelper).notificationsEnabled
     }
 
     @Test
-    fun `addAlarmWithChecks() emits ShowNotificationsDisabledError effect before Android 13`() = runTest {
+    fun `addAlarmWithChecks() posts to notificationsDisabled before Android 13`() = runTest {
         val notificationHelper = mock<NotificationHelper> {
             on { notificationsEnabled } doReturn false
         }
@@ -288,9 +267,8 @@ class SessionDetailsViewModelTest {
             runsAtLeastOnAndroidTiramisu = false,
         )
         viewModel.addAlarmWithChecks()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isEqualTo(ShowNotificationsDisabledError)
+        viewModel.notificationsDisabled.test {
+            assertThat(awaitItem()).isEqualTo(Unit)
         }
     }
 
@@ -318,18 +296,17 @@ class SessionDetailsViewModelTest {
     }
 
     @Test
-    fun `closeDetails() emits CloseDetails effect`() = runTest {
+    fun `closeDetails() posts to closeDetails`() = runTest {
         val repository = createRepository()
         val viewModel = createViewModel(repository)
         viewModel.closeDetails()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isEqualTo(CloseDetails)
+        viewModel.closeDetails.test {
+            assertThat(awaitItem()).isEqualTo(Unit)
         }
     }
 
     @Test
-    fun `navigateToRoom() emits NavigateToRoom effect`() = runTest {
+    fun `navigateToRoom() posts to navigateToRoom`() = runTest {
         val repository = createRepository(
             selectedSession = Session(
                 sessionId = "S1",
@@ -342,10 +319,8 @@ class SessionDetailsViewModelTest {
             indoorNavigation = SupportedIndoorNavigation,
         )
         viewModel.navigateToRoom()
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assertThat(effect).isInstanceOf(NavigateToRoom::class.java)
-            assertThat((effect as NavigateToRoom).uri).isEqualTo("https://c3nav.foo/garden".toUri())
+        viewModel.navigateToRoom.test {
+            assertThat(awaitItem()).isEqualTo("https://c3nav.foo/garden".toUri())
         }
         verifyInvokedOnce(repository).loadSelectedSession()
     }
@@ -625,7 +600,6 @@ class SessionDetailsViewModelTest {
             title = SessionDetailsProperty("", ""),
             subtitle = SessionDetailsProperty("", ""),
             speakerNames = SessionDetailsProperty("", ""),
-            languages = SessionDetailsProperty("", ""),
             abstract = SessionDetailsProperty(Markdown(""), ""),
             description = SessionDetailsProperty(Markdown(""), ""),
             trackName = SessionDetailsProperty("", ""),
