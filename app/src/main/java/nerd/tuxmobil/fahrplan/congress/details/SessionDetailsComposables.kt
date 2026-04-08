@@ -76,25 +76,28 @@ import nerd.tuxmobil.fahrplan.congress.extensions.safeContentHorizontalAndBottom
 import nerd.tuxmobil.fahrplan.congress.extensions.toTextUnit
 
 @Composable
-internal fun SessionDetailsContent(
+internal fun SessionDetailsScreen(
     sessionDetailsState: SessionDetailsState,
     onViewEvent: (SessionDetailsViewEvent) -> Unit,
     showRoomState: Boolean,
     roomStateMessage: String,
 ) {
-    Scaffold {
-        val contentAlignment = if (sessionDetailsState is Loading) Alignment.Center else Alignment.TopStart
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .verticalScroll(rememberScrollState()),
-            contentAlignment = contentAlignment,
-        ) {
-            when (sessionDetailsState) {
-                Loading -> Loading()
-                is Success -> {
-                    val parameter = sessionDetailsState.sessionDetailsParameter as SessionDetails
-                    SessionDetails(parameter, onViewEvent, showRoomState, roomStateMessage)
+    EventFahrplanTheme {
+        Scaffold {
+            val contentAlignment = if (sessionDetailsState is Loading) Alignment.Center else Alignment.TopStart
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState()),
+                contentAlignment = contentAlignment,
+            ) {
+                when (sessionDetailsState) {
+                    Loading -> Loading()
+                    is Success -> {
+                        val parameter = sessionDetailsState.sessionDetailsParameter as SessionDetails
+                        SessionDetails(parameter, onViewEvent, showRoomState, roomStateMessage)
+                    }
+
                 }
             }
         }
@@ -139,11 +142,7 @@ fun SessionDetails(
                     RoomState(showRoomState, roomStateMessage)
                     Title(title, showTitleBoxed)
                     Subtitle(subtitle)
-                    SpeakerNamesAndLanguages(
-                        speakerNamesProperty = speakerNames,
-                        languagesProperty = languages,
-                        modifier = Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_speaker_names)),
-                    )
+                    SpeakerNames(speakerNames, Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_speaker_names)))
                     Abstract(abstract, htmlStyle)
                     Description(description, htmlStyle)
                     Links(links, htmlStyle, Modifier.padding(top = dimensionResource(R.dimen.session_details_extra_space_above_section_header)))
@@ -264,29 +263,17 @@ private fun Subtitle(
 }
 
 @Composable
-private fun SpeakerNamesAndLanguages(
-    speakerNamesProperty: SessionDetailsProperty<String>,
-    languagesProperty: SessionDetailsProperty<String>,
+private fun SpeakerNames(
+    property: SessionDetailsProperty<String>,
     modifier: Modifier = Modifier,
 ) {
-    val text = buildString {
-        if (speakerNamesProperty.value.isNotEmpty()) {
-            append(speakerNamesProperty.value.uppercase())
-        }
-        if (speakerNamesProperty.value.isNotEmpty() && languagesProperty.value.isNotEmpty()) {
-            append(" ")
-        }
-        if (languagesProperty.value.isNotEmpty()) {
-            append("[${languagesProperty.value.uppercase()}]")
-        }
-    }
-    if (text.isNotEmpty()) {
+    if (property.value.isNotEmpty()) {
         TextSection(
             modifier = modifier
                 .semantics {
-                    contentDescription = "${speakerNamesProperty.contentDescription}, ${languagesProperty.contentDescription}"
+                    contentDescription = property.contentDescription
                 },
-            text = text,
+            text = property.value.uppercase(),
             fontSize = dimensionResource(R.dimen.session_details_speakers).toTextUnit(),
         )
     }
@@ -655,30 +642,27 @@ private fun getAnnotatedString(
 
 @MultiDevicePreview
 @Composable
-private fun SessionDetailsContentPreview() {
-    EventFahrplanTheme {
-        SessionDetailsContent(
-            sessionDetailsState = Success(
-                SessionDetails(
-                    id = SessionDetailsProperty(stringResource(R.string.placeholder_session_id), ""),
-                    title = SessionDetailsProperty(stringResource(R.string.placeholder_session_title), ""),
-                    subtitle = SessionDetailsProperty(stringResource(R.string.placeholder_session_subtitle), ""),
-                    speakerNames = SessionDetailsProperty(stringResource(R.string.placeholder_session_speakers), ""),
-                    languages = SessionDetailsProperty(stringResource(R.string.placeholder_session_languages), ""),
-                    abstract = SessionDetailsProperty(Markdown(stringResource(R.string.placeholder_session_abstract)), ""),
-                    description = SessionDetailsProperty(Markdown(stringResource(R.string.placeholder_session_description)), ""),
-                    trackName = SessionDetailsProperty(stringResource(R.string.placeholder_session_track), ""),
-                    links = SessionDetailsProperty(stringResource(R.string.placeholder_session_links), ""),
-                    startsAt = SessionDetailsProperty(stringResource(R.string.placeholder_session_date), ""),
-                    roomName = SessionDetailsProperty(stringResource(R.string.placeholder_session_location), ""),
-                    sessionLink = stringResource(R.string.placeholder_session_online),
-                )
-            ),
-            onViewEvent = {},
-            showRoomState = true,
-            roomStateMessage = stringResource(R.string.room_state_text),
-        )
-    }
+private fun SessionDetailsScreenPreview() {
+    SessionDetailsScreen(
+        sessionDetailsState = Success(
+            SessionDetails(
+                id = SessionDetailsProperty(stringResource(R.string.placeholder_session_id), ""),
+                title = SessionDetailsProperty(stringResource(R.string.placeholder_session_title), ""),
+                subtitle = SessionDetailsProperty(stringResource(R.string.placeholder_session_subtitle), ""),
+                speakerNames = SessionDetailsProperty(stringResource(R.string.placeholder_session_speakers), ""),
+                abstract = SessionDetailsProperty(Markdown(stringResource(R.string.placeholder_session_abstract)), ""),
+                description = SessionDetailsProperty(Markdown(stringResource(R.string.placeholder_session_description)), ""),
+                trackName = SessionDetailsProperty(stringResource(R.string.placeholder_session_track), ""),
+                links = SessionDetailsProperty(stringResource(R.string.placeholder_session_links), ""),
+                startsAt = SessionDetailsProperty(stringResource(R.string.placeholder_session_date), ""),
+                roomName = SessionDetailsProperty(stringResource(R.string.placeholder_session_location), ""),
+                sessionLink = stringResource(R.string.placeholder_session_online),
+            )
+        ),
+        onViewEvent = {},
+        showRoomState = true,
+        roomStateMessage = stringResource(R.string.room_state_text),
+    )
 }
 
 private const val EXAMPLE_MARKDOWN = """# About
@@ -755,13 +739,11 @@ private fun DescriptionHtmlPreview() {
 
 @Preview
 @Composable
-private fun SessionDetailsContentLoadingPreview() {
-    EventFahrplanTheme {
-        SessionDetailsContent(
-            sessionDetailsState = Loading,
-            onViewEvent = {},
-            showRoomState = false,
-            roomStateMessage = stringResource(R.string.room_state_text),
-        )
-    }
+private fun SessionDetailsScreenLoadingPreview() {
+    SessionDetailsScreen(
+        sessionDetailsState = Loading,
+        onViewEvent = {},
+        showRoomState = false,
+        roomStateMessage = stringResource(R.string.room_state_text),
+    )
 }

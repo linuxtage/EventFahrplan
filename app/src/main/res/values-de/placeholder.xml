@@ -58,9 +58,6 @@
     <string name="placeholder_session_language">
         de
     </string>
-    <string name="placeholder_session_languages">
-        de, en
-    </string>
     <string name="placeholder_session_day">
         Heute
     </string>

@@ -1,5 +1,6 @@
 package nerd.tuxmobil.fahrplan.congress.details
 
+import android.net.Uri
 import android.os.Build
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
@@ -7,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import info.metadude.android.eventfahrplan.commons.logging.Logging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,16 +24,6 @@ import nerd.tuxmobil.fahrplan.congress.alarms.SessionAlarmViewModelDelegate
 import nerd.tuxmobil.fahrplan.congress.commons.BuildConfigProvision
 import nerd.tuxmobil.fahrplan.congress.commons.ExternalNavigation
 import nerd.tuxmobil.fahrplan.congress.dataconverters.toRoom
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.AddToCalendar
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.CloseDetails
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.NavigateToRoom
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.OpenFeedback
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.RequestPostNotificationsPermission
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.RequestScheduleExactAlarmsPermission
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShareJson
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShareSimple
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShowAlarmTimePicker
-import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsEffect.ShowNotificationsDisabledError
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsState.Loading
 import nerd.tuxmobil.fahrplan.congress.details.SessionDetailsState.Success
 import nerd.tuxmobil.fahrplan.congress.models.Session
@@ -83,11 +75,33 @@ internal class SessionDetailsViewModel(
     private val mutableSessionDetailsState = MutableStateFlow<SessionDetailsState>(Loading)
     val sessionDetailsState = mutableSessionDetailsState.asStateFlow()
 
+    private val mutableOpenFeedBack = Channel<Uri>()
+    val openFeedBack = mutableOpenFeedBack.receiveAsFlow()
+    private val mutableShareSimple = Channel<String>()
+    val shareSimple = mutableShareSimple.receiveAsFlow()
+    private val mutableShareJson = Channel<String>()
+    val shareJson = mutableShareJson.receiveAsFlow()
+    private val mutableAddToCalendar = Channel<Session>()
+    val addToCalendar = mutableAddToCalendar.receiveAsFlow()
+    private val mutableNavigateToRoom = Channel<Uri>()
+    val navigateToRoom = mutableNavigateToRoom.receiveAsFlow()
+    private val mutableCloseDetails = Channel<Unit>()
+    val closeDetails = mutableCloseDetails.receiveAsFlow()
+
+    val requestPostNotificationsPermission = sessionAlarmViewModelDelegate
+        .requestPostNotificationsPermission
+
+    val notificationsDisabled = sessionAlarmViewModelDelegate
+        .notificationsDisabled
+
+    val requestScheduleExactAlarmsPermission = sessionAlarmViewModelDelegate
+        .requestScheduleExactAlarmsPermission
+
+    val showAlarmTimePicker = sessionAlarmViewModelDelegate
+        .showAlarmTimePicker
+
     private val mutableRoomStateMessage = MutableStateFlow(roomStateFormatting.getText(null))
     val roomStateMessage = mutableRoomStateMessage.asStateFlow()
-
-    private val mutableEffects = Channel<SessionDetailsEffect>()
-    val effects = mutableEffects.receiveAsFlow()
 
     val showRoomState = buildConfigProvision.enableFosdemRoomStates
 
@@ -96,25 +110,6 @@ internal class SessionDetailsViewModel(
             updateRoomState()
         }
         updateSessionDetailsState()
-        sendSessionAlarmEffects()
-    }
-
-    private fun sendSessionAlarmEffects() {
-        sessionAlarmViewModelDelegate.showAlarmTimePicker
-            .onEach { sendEffect(ShowAlarmTimePicker) }
-            .launchIn(viewModelScope)
-
-        sessionAlarmViewModelDelegate.requestPostNotificationsPermission
-            .onEach { sendEffect(RequestPostNotificationsPermission) }
-            .launchIn(viewModelScope)
-
-        sessionAlarmViewModelDelegate.requestScheduleExactAlarmsPermission
-            .onEach { sendEffect(RequestScheduleExactAlarmsPermission) }
-            .launchIn(viewModelScope)
-
-        sessionAlarmViewModelDelegate.notificationsDisabled
-            .onEach { sendEffect(ShowNotificationsDisabledError) }
-            .launchIn(viewModelScope)
     }
 
     fun onViewEvent(event: SessionDetailsViewEvent) {
@@ -148,26 +143,30 @@ internal class SessionDetailsViewModel(
     fun openFeedback() {
         loadSelectedSession { session ->
             val uri = feedbackUrlComposition.getFeedbackUrl(session).toUri()
-            sendEffect(OpenFeedback(uri))
+            mutableOpenFeedBack.sendOneTimeEvent(uri)
         }
     }
 
     fun share() {
         loadSelectedSession { session ->
             val timeZoneId = repository.readMeta().timeZoneId
-            sendEffect(ShareSimple(simpleSessionFormat.format(session, timeZoneId)))
+            simpleSessionFormat.format(session, timeZoneId).let { formattedSession ->
+                mutableShareSimple.sendOneTimeEvent(formattedSession)
+            }
         }
     }
 
     fun shareToChaosflix() {
         loadSelectedSession { session ->
-            sendEffect(ShareJson(jsonSessionFormat.format(session)))
+            jsonSessionFormat.format(session).let { formattedSession ->
+                mutableShareJson.sendOneTimeEvent(formattedSession)
+            }
         }
     }
 
     fun addToCalendar() {
         loadSelectedSession { session ->
-            sendEffect(AddToCalendar(session))
+            mutableAddToCalendar.sendOneTimeEvent(session)
         }
     }
 
@@ -213,12 +212,12 @@ internal class SessionDetailsViewModel(
         loadSelectedSession { session ->
             val room = session.toRoom()
             val uri = indoorNavigation.getUri(room)
-            sendEffect(NavigateToRoom(uri))
+            mutableNavigateToRoom.sendOneTimeEvent(uri)
         }
     }
 
     fun closeDetails() {
-        sendEffect(CloseDetails)
+        mutableCloseDetails.sendOneTimeEvent(Unit)
     }
 
     private fun loadSelectedSession(onSessionLoaded: (Session) -> Unit) {
@@ -248,9 +247,9 @@ internal class SessionDetailsViewModel(
         viewModelScope.launch(executionContext.database, block = block)
     }
 
-    private fun sendEffect(effect: SessionDetailsEffect) {
+    private fun <E> SendChannel<E>.sendOneTimeEvent(event: E) {
         viewModelScope.launch {
-            mutableEffects.send(effect)
+            send(event)
         }
     }
 
