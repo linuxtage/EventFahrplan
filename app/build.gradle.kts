@@ -147,6 +147,56 @@ android {
             buildConfigField("String", "SCHEDULE_FEEDBACK_URL", """""""")
             buildConfigField("String", "VIDEO_RECORDINGS_URL", """"📼 https://media.ccc.de/c/39c3"""")
         }
+        create("glt22") {
+            dimension = defaultDimension
+            applicationId = "at.linuxtage.Eventfahrplan"
+            versionName = "${defaultConfig.versionName}-glt-Edition"
+            buildConfigField(
+                "String",
+                "GOOGLE_PLAY_URL",
+                """"https://play.google.com/store/apps/details?id=at.linuxtage.Eventfahrplan"""",
+            )
+            buildConfigField(
+                "String",
+                "F_DROID_URL",
+                """"https://f-droid.org/packages/at.linuxtage.Eventfahrplan"""",
+            )
+            buildConfigField(
+                "String",
+                "SCHEDULE_URL",
+                """"https://pretalx.linuxtage.at/glt26/schedule/export/schedule.xml"""",
+            )
+            buildConfigField("String", "SCHEDULE_FILE_FORMAT", """"schedule_v1_xml"""")
+            buildConfigField("String", "EVENT_URL", """""""")
+            buildConfigField("String", "EVENT_WEBSITE_URL", """"https://www.linuxtage.at"""")
+            buildConfigField(
+                "String",
+                "EVENT_POSTAL_ADDRESS",
+                """"Inffeldgasse 25d, 8010 Graz"""",
+            )
+            buildConfigField("String", "SERVER_BACKEND_TYPE", """"pretalx"""")
+            buildConfigField("boolean", "SHOW_APP_DISCLAIMER", "true")
+            buildConfigField("boolean", "ENABLE_ALTERNATIVE_SCHEDULE_URL", "false")
+            buildConfigField("boolean", "ENGAGE_C3NAV_APP_INSTALLATION", "false")
+            buildConfigField("boolean", "ENABLE_CHAOSFLIX_EXPORT", "true")
+            buildConfigField("boolean", "ENABLE_ENGELSYSTEM_SHIFTS", "false")
+            resValue(
+                "string",
+                "preference_hint_engelsystem_json_export_url",
+                """"https://engel.linuxtage.at/shifts-json-export?key=YOUR_KEY"""",
+            )
+            buildConfigField(
+                "String",
+                "SOCIAL_MEDIA_HASHTAGS_HANDLES",
+                """"#glt26 #glt @linuxtage @gltlive"""",
+            )
+            buildConfigField("String", "TRACE_DROID_EMAIL_ADDRESS", """"glt26@linuxtage.at"""")
+            buildConfigField(
+                "String",
+                "SCHEDULE_FEEDBACK_URL",
+                """"https://pretalx.linuxtage.at/glt26/talk/%s/feedback/"""",
+            )
+        }
     }
 
     productFlavors.configureEach {
