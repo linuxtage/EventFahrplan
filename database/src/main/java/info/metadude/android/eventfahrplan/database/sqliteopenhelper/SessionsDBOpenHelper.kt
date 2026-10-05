@@ -108,7 +108,7 @@ internal class SessionsDBOpenHelper(context: Context) : SQLiteOpenHelper(
 ) {
 
     private companion object {
-        const val DATABASE_VERSION = 19
+        const val DATABASE_VERSION = 20
         const val DATABASE_NAME = "lectures" // Keep table name to avoid database migration.
 
         // language=sql
@@ -310,7 +310,7 @@ internal class SessionsDBOpenHelper(context: Context) : SQLiteOpenHelper(
             dropViewIfExist(StatisticsView.NAME)
             onCreate(this)
         }
-        if (oldVersion < 19) {
+        if (oldVersion < 20) {
             if (!columnExists(SessionsTable.NAME, SESSION_GUID)) {
                 addTextColumn(SESSION_GUID, default = null)
             }
