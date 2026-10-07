@@ -1,21 +1,23 @@
-[![Travis CI Build Status](https://app.travis-ci.com/EventFahrplan/EventFahrplan.svg?branch=master)](https://app.travis-ci.com/EventFahrplan/EventFahrplan) [![GitHub Actions Build Status](https://github.com/EventFahrplan/EventFahrplan/actions/workflows/build.yaml/badge.svg)](https://github.com/EventFahrplan/EventFahrplan/actions/workflows/build.yaml) [![Crowdin](https://badges.crowdin.net/eventfahrplan/localized.svg)](https://crowdin.com/project/eventfahrplan) [![Apache License](http://img.shields.io/badge/license-Apache%20License%202.0-lightgrey.svg)](http://choosealicense.com/licenses/apache-2.0/)
+![GitHub release version](https://img.shields.io/github/v/release/linuxtage/EventFahrplan.svg?logo=github) [![GitHub Actions Build Status](https://github.com/linuxtage/EventFahrplan/actions/workflows/build.yaml/badge.svg?branch=glt)](https://github.com/linuxtage/EventFahrplan/actions/workflows/build.yaml?query=branch%3Aglt) ![F-Droid release version](https://img.shields.io/f-droid/v/at.linuxtage.Eventfahrplan.svg?logo=F-Droid) [![Crowdin](https://badges.crowdin.net/eventfahrplan/localized.svg)](https://crowdin.com/project/eventfahrplan) [![Apache License](http://img.shields.io/badge/license-Apache%20License%202.0-lightgrey.svg)](http://choosealicense.com/licenses/apache-2.0/)
 
 # EventFahrplan
 
-EventFahrplan is a viewer for event schedules such as
-[Chaos Computer Club e.V. events][ccc-events] like [Chaos Communication Camp][camp-website]
-or [Chaos Communication Congress][congress-website].
+This is the schedule browser for the [Grazer Linuxtage](https://linuxtage.at) conference in Graz, Austria.
 
-- Chaos Communication Camp Schedule app: [F-Droid][camp-app-fdroid], [Google Play][camp-app-google-play]
-- Chaos Communication Congress Schedule app: [F-Droid][congress-app-fdroid], [Google Play][congress-app-google-play]
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
+alt="Get it on F-Droid"
+height="80">](https://f-droid.org/packages/at.linuxtage.Eventfahrplan/)
+[<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
+alt="Get it on Google Play"
+height="80">](https://play.google.com/store/apps/details?id=at.linuxtage.Eventfahrplan)
 
-The app is available for Android devices.
+It is a fork of [EventFahrplan](https://github.com/EventFahrplan/EventFahrplan), an Android viewer for event schedules.
 
-Bug reports, feature requests can be submitted as an [issue][issues-github]. Please mind the
+Bug reports and feature requests can be submitted as an [issue][issues-github]. Please mind the
 [limitations][limitations]. Please read the instructions in the [contribution guide](CONTRIBUTING.md)
-in order to contribute to this project.
+to contribute to this project.
 
-![Picture of the 39C3 Schedule on tablet and phone](gfx/EventFahrplan-39C3-tablet-phone.png)
+![Picture of the GLT companion](gfx/glt-companion.webp)
 
 ## Table of contents
 
@@ -41,7 +43,6 @@ in order to contribute to this project.
 * Share a link to a session with others
 * Keep track of program changes
 * Automatic program updates (configurable in settings)
-* Automatically open session URLs in the app. (only enabled for 39C3)
 
 
 ### Supported languages
@@ -95,6 +96,12 @@ provide the same event file format.
 
 To begin development, open the project in Android Studio.
 
+To build the GLT debug variant, run:
+
+```shell
+./gradlew assembleGlt22Debug
+```
+
 The [customization guide][customization-guide] explains in detail how to create an app for your event.
 
 If you want to create your own signed release builds, copy the `gradle.properties.example` file in the `app` folder
@@ -121,6 +128,7 @@ started to re-deploy the app for other events like FOSSGIS, FrOSCon, MRMCD and
 other conferences.
 * In August 2017 the project moved to a new location and was renamed to
 ["EventFahrplan"][eventfahrplan-github] to acknowledge its broader use.
+* In 2022, the project was forked for the Grazer Linuxtage.
 
 ## Funding
 
@@ -176,14 +184,7 @@ limitations under the License.
 
 [c3nav-github]: https://github.com/c3nav
 [campfahrplan-github]: https://github.com/tuxmobil/CampFahrplan
-[camp-app-fdroid]: https://f-droid.org/packages/info.metadude.android.cccamp.schedule
-[camp-app-google-play]: https://play.google.com/store/apps/details?id=info.metadude.android.cccamp.schedule
-[camp-website]: https://events.ccc.de/camp/
-[ccc-events]: http://events.ccc.de
 [chaosflix-github]: https://github.com/NiciDieNase/chaosflix
-[congress-app-fdroid]: https://f-droid.org/packages/info.metadude.android.congress.schedule
-[congress-app-google-play]: https://play.google.com/store/apps/details?id=info.metadude.android.congress.schedule
-[congress-website]: https://events.ccc.de/congress/
 [customization-guide]: docs/CUSTOMIZING.md
 [crowdin-eventfahrplan-website]: https://crowdin.com/project/eventfahrplan
 [crowdin-cli-tool-website]: https://crowdin.github.io/crowdin-cli/
@@ -193,7 +194,7 @@ limitations under the License.
 [frab-schedule-xml-spec]: https://github.com/voc/schedule/tree/master/validator/xsd
 [frab-website]: https://frab.github.io/frab/
 [fosdem-room-status-website]: https://api.fosdem.org
-[issues-github]: https://github.com/EventFahrplan/EventFahrplan/issues
+[issues-github]: https://github.com/linuxtage/EventFahrplan/issues
 [johnjohndoe-github]: https://github.com/johnjohndoe
 [limitations]: docs/LIMITATIONS.md
 [openki-website]: https://openki.net
