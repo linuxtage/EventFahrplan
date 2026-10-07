@@ -150,6 +150,7 @@ android {
         create("glt22") {
             dimension = defaultDimension
             applicationId = "at.linuxtage.Eventfahrplan"
+            versionCode = 1700030
             versionName = "${defaultConfig.versionName}-glt-Edition"
             buildConfigField(
                 "String",
